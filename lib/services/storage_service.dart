@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
 import 'package:vortex_dashboard/models/ride_model.dart';
+import 'package:vortex_dashboard/models/ride_model.g.dart';
 import 'package:vortex_dashboard/models/trip_settings.dart';
 
 class StorageService {
@@ -9,7 +10,12 @@ class StorageService {
   StorageService._();
 
   static Future<void> initialize() async {
-    await Hive.openBox<RideModel>(AppConstants.hiveBoxRides);
+    try {
+      Hive.registerAdapter(RideModelAdapter());
+      await Hive.openBox<RideModel>(AppConstants.hiveBoxRides);
+    } catch (_) {
+      await Hive.openBox(AppConstants.hiveBoxRides);
+    }
     await Hive.openBox(AppConstants.hiveBoxSettings);
     await Hive.openBox(AppConstants.hiveBoxTracking);
     await Hive.openBox(AppConstants.hiveBoxTrips);

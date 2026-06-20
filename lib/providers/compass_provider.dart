@@ -18,10 +18,13 @@ class CompassHeadingNotifier extends StateNotifier<double> {
 
   CompassHeadingNotifier(this._ref) : super(0) {
     final service = _ref.read(compassServiceProvider);
-    service.startListening();
-    _sub = service.headingStream.listen((h) {
-      state = h;
-    });
+    try {
+      service.startListening();
+    } catch (_) {}
+    _sub = service.headingStream.listen(
+      (h) { state = h; },
+      onError: (_) {},
+    );
   }
 
   @override

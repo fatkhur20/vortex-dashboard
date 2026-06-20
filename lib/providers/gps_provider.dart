@@ -19,10 +19,13 @@ class GpsDataNotifier extends StateNotifier<GpsData?> {
 
   GpsDataNotifier(this._ref) : super(null) {
     final service = _ref.read(gpsServiceProvider);
-    service.startListening();
-    _sub = service.gpsDataStream.listen((data) {
-      state = data;
-    });
+    try {
+      service.startListening();
+    } catch (_) {}
+    _sub = service.gpsDataStream.listen(
+      (data) { state = data; },
+      onError: (_) {},
+    );
   }
 
   @override

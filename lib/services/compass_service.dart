@@ -23,19 +23,25 @@ class CompassService {
   List<double> _geomagnetic = [0, 0, 0];
 
   Future<void> startListening() async {
-    _accelerometerSubscription = accelerometerEventStream().listen(
-      (AccelerometerEvent event) {
-        _gravity = [event.x, event.y, event.z];
-        _computeHeading();
-      },
-    );
+    try {
+      _accelerometerSubscription = accelerometerEventStream().listen(
+        (AccelerometerEvent event) {
+          _gravity = [event.x, event.y, event.z];
+          _computeHeading();
+        },
+        onError: (_) {},
+      );
+    } catch (_) {}
 
-    _magnetometerSubscription = magnetometerEventStream().listen(
-      (MagnetometerEvent event) {
-        _geomagnetic = [event.x, event.y, event.z];
-        _computeHeading();
-      },
-    );
+    try {
+      _magnetometerSubscription = magnetometerEventStream().listen(
+        (MagnetometerEvent event) {
+          _geomagnetic = [event.x, event.y, event.z];
+          _computeHeading();
+        },
+        onError: (_) {},
+      );
+    } catch (_) {}
   }
 
   void _computeHeading() {
