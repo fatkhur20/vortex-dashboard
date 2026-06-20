@@ -1,0 +1,44 @@
+name: Build Test Minimal (Docker Flutter)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create and build minimal test app
+        run: |
+          flutter config --no-analytics
+          flutter create --org com.vortex test_docker
+          cd test_docker
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          void main() => runApp(MaterialApp(
+            debugShowCheckedModeBanner: true,
+            home: Scaffold(appBar: AppBar(title: Text('Test')), body: Center(child: Text('Hello Docker'))),
+          ));
+          EOF
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-docker-apk-release
+          path: test_docker/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Build debug
+        run: |
+          cd test_docker
+          flutter build apk --debug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-docker-apk-debug
+          path: test_docker/build/app/outputs/flutter-apk/app-debug.apk
