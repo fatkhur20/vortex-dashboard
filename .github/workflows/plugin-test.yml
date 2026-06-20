@@ -1,0 +1,41 @@
+name: Plugin Compatibility Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test app with all Vortex plugins
+        run: |
+          flutter create --org com.vortex test_plugins
+          cd test_plugins
+          flutter pub add flutter_riverpod riverpod_annotation
+          flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
+          flutter pub add hive hive_flutter fl_chart
+          flutter pub add permission_handler shared_preferences uuid intl http path_provider
+          flutter pub add sensors_plus geocoding latlong2 equatable freezed_annotation json_annotation
+          flutter pub add xml csv wakelock_plus flutter_local_notifications audioplayers
+          flutter pub add smooth_page_indicator shimmer share_plus url_launcher package_info_plus
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          void main() => runApp(MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(title: Text('Plugin Test')),
+              body: Center(child: Text('If you see this, all plugins loaded!')),
+            ),
+          ));
+          EOF
+          flutter build apk --debug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-test-debug
+          path: test_plugins/build/app/outputs/flutter-apk/app-debug.apk
