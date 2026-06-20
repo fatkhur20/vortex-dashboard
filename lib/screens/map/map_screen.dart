@@ -87,7 +87,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   double? _lastRotation;
 
   void _applyRotation(double heading) {
-    final target = _headingUp ? heading * 3.1415927 / 180 : 0;
+    const double _deg2rad = 3.141592653589793 / 180.0;
+    final target = _headingUp ? heading * _deg2rad : 0.0;
     if (_lastRotation == target) return;
     _lastRotation = target;
     WidgetsBinding.instance.addPostFrameCallback((_) {
