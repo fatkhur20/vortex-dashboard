@@ -1,5 +1,5 @@
 name: vortex_dashboard
-description: A premium motorcycle/car dashboard application with GPS, compass, altimeter, and tracking features.
+description: Motorcycle/car dashboard with GPS, compass & altimeter.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,48 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_riverpod:
-  riverpod_annotation:
-  geolocator:
-  flutter_map:
-  flutter_map_cancellable_tile_provider:
-  hive:
-  hive_flutter:
-  fl_chart:
-  permission_handler:
-  shared_preferences:
-  uuid:
-  intl:
-  http:
-  path_provider:
-  sensors_plus:
-  geocoding:
-  latlong2:
-  equatable:
-  freezed_annotation:
-  json_annotation:
-  xml:
-  csv:
-  wakelock_plus:
-  smooth_page_indicator:
-  shimmer:
-  share_plus:
-  url_launcher:
-  package_info_plus:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints:
-  build_runner:
-  hive_generator:
-  freezed:
-  json_serializable:
-  riverpod_generator:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/fonts/.gitkeep
-    - assets/icons/.gitkeep
