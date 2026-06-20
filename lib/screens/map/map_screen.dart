@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
@@ -76,9 +77,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     }
   }
 
-  double get _heading {
-    final gpsData = ref.read(gpsDataProvider);
-    final compassHeading = ref.read(compassHeadingProvider);
+  double _computeHeading(GpsData? gpsData, double compassHeading) {
     final speed = gpsData?.speed ?? 0;
     if (speed > 5) {
       return gpsData?.heading ?? compassHeading;
@@ -105,7 +104,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   Widget build(BuildContext context) {
     final location = ref.watch(currentLocationProvider);
     final gpsData = ref.watch(gpsDataProvider);
-    final heading = _heading;
+    final compassHeading = ref.watch(compassHeadingProvider);
+    final heading = _computeHeading(gpsData, compassHeading);
 
     final currentPos = (location['lat'] != 0 && location['lng'] != 0)
         ? LatLng(location['lat']!, location['lng']!)
@@ -337,7 +337,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     if (speed < 1) return Colors.white;
     if (speed < 40) return ThemeConstants.successColor;
     if (speed < 80) return ThemeConstants.warningColor;
-    return ThemeConstants.dangerColor;
+    return const Color(0xFFFF1744);
   }
 
   String _headingDir(double heading) {
