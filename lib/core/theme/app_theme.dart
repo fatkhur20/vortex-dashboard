@@ -25,7 +25,7 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: Colors.white),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: ThemeConstants.cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -124,7 +124,7 @@ class AppTheme {
         labelStyle: const TextStyle(color: Colors.white54),
         hintStyle: TextStyle(color: Colors.white38),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: ThemeConstants.cardBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(ThemeConstants.borderRadiusMedium),
@@ -158,7 +158,7 @@ class AppTheme {
   static ThemeData get amoledTheme {
     return darkTheme.copyWith(
       scaffoldBackgroundColor: ThemeConstants.amoledBackground,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: const Color(0xFF0A0A0A),
         elevation: 0,
         shape: RoundedRectangleBorder(
