@@ -18,13 +18,9 @@ allprojects {
 }
 
 subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                if (namespace == null) {
-                    namespace project.group ?: "com.vortex.dashboard.${project.name.replace('-', '_')}"
-                }
-            }
+    afterEvaluate { p ->
+        if (p.plugins.hasPlugin('com.android.application') || p.plugins.hasPlugin('com.android.library')) {
+            p.android.namespace = p.android.namespace ?: "com.vortex.dashboard.${p.name.replace('-', '_')}"
         }
     }
 }
