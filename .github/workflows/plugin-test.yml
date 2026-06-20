@@ -12,30 +12,82 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create test app with all Vortex plugins
+      - name: Create test app with core plugins only
         run: |
-          flutter create --org com.vortex test_plugins
-          cd test_plugins
-          flutter pub add flutter_riverpod riverpod_annotation
+          flutter create --org com.vortex test_core
+          cd test_core
+          # Only add pure-Dart + essential plugins, NO suspicious ones
           flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
           flutter pub add hive hive_flutter fl_chart
-          flutter pub add permission_handler shared_preferences uuid intl http path_provider
-          flutter pub add sensors_plus geocoding latlong2 equatable freezed_annotation json_annotation
-          flutter pub add xml csv wakelock_plus flutter_local_notifications audioplayers
-          flutter pub add smooth_page_indicator shimmer share_plus url_launcher package_info_plus
+          flutter pub add shared_preferences uuid intl http path_provider
+          flutter pub add latlong2 xml csv smooth_page_indicator shimmer
           cat > lib/main.dart << 'EOF'
           import 'package:flutter/material.dart';
           void main() => runApp(MaterialApp(
             home: Scaffold(
-              appBar: AppBar(title: Text('Plugin Test')),
-              body: Center(child: Text('If you see this, all plugins loaded!')),
+              appBar: AppBar(title: Text('Core Test')),
+              body: Center(child: Text('Core plugins loaded!')),
             ),
           ));
           EOF
           flutter build apk --debug
 
-      - name: Upload Debug APK
+      - name: Upload Core Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-test-debug
-          path: test_plugins/build/app/outputs/flutter-apk/app-debug.apk
+          name: plugin-test-core
+          path: test_core/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Create test app with all plugins minus notification
+        run: |
+          flutter create --org com.vortex test_nonotif
+          cd test_nonotif
+          flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
+          flutter pub add hive hive_flutter fl_chart permission_handler
+          flutter pub add shared_preferences uuid intl http path_provider
+          flutter pub add sensors_plus geocoding latlong2 equatable freezed_annotation json_annotation
+          flutter pub add xml csv wakelock_plus audioplayers
+          flutter pub add smooth_page_indicator shimmer share_plus url_launcher package_info_plus
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          void main() => runApp(MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(title: Text('No Notification Test')),
+              body: Center(child: Text('All plugins minus flutter_local_notifications!')),
+            ),
+          ));
+          EOF
+          flutter build apk --debug
+
+      - name: Upload No-Notification Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-test-no-notif
+          path: test_nonotif/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Create test app with all plugins minus wakelock
+        run: |
+          flutter create --org com.vortex test_nowl
+          cd test_nowl
+          flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
+          flutter pub add hive hive_flutter fl_chart permission_handler
+          flutter pub add shared_preferences uuid intl http path_provider
+          flutter pub add sensors_plus geocoding latlong2 equatable freezed_annotation json_annotation
+          flutter pub add xml csv flutter_local_notifications audioplayers
+          flutter pub add smooth_page_indicator shimmer share_plus url_launcher package_info_plus
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          void main() => runApp(MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(title: Text('No Wakelock Test')),
+              body: Center(child: Text('All plugins minus wakelock_plus!')),
+            ),
+          ));
+          EOF
+          flutter build apk --debug
+
+      - name: Upload No-Wakelock Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-test-no-wl
+          path: test_nowl/build/app/outputs/flutter-apk/app-debug.apk
