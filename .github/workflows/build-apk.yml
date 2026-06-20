@@ -19,11 +19,12 @@ jobs:
       - name: Generate fresh project
         run: flutter create --org com.vortex --project-name vortex_dashboard --platforms android fresh
 
-      - name: Copy Dart code
+      - name: Copy Dart code & assets
         run: |
           cp -r lib/* fresh/lib/
           cp pubspec.yaml fresh/pubspec.yaml
-          [ -d assets ] && cp -r assets/* fresh/assets/ 2>/dev/null || true
+          mkdir -p fresh/assets/fonts fresh/assets/icons
+          [ -d assets ] && cp -r assets/. fresh/assets/ 2>/dev/null || true
 
       - name: Install dependencies
         run: cd fresh && flutter pub get
