@@ -3,6 +3,10 @@ import 'package:vortex_dashboard/models/gps_data.dart';
 
 part 'ride_model.g.dart';
 
+void registerRideModelAdapter() {
+  Hive.registerAdapter(RideModelAdapter());
+}
+
 @HiveType(typeId: 0)
 class RideModel extends HiveObject {
   @HiveField(0)
