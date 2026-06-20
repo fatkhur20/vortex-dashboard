@@ -19,6 +19,26 @@ jobs:
       - name: Generate fresh project
         run: flutter create --org com.vortex --project-name vortex_dashboard --platforms android fresh
 
+      - name: Generate app icon
+        run: |
+          python3 -c "
+import struct, zlib
+def create_png(w, h, r, g, b, text=None):
+    def chunk(t, d):
+        c = struct.pack('>I', len(d)) + t + d
+        return c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+    ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+    raw = b''
+    for y in range(h):
+        raw += b'\x00'
+        for x in range(w):
+            raw += bytes([r, g, b])
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+png = create_png(1024, 1024, 10, 15, 30)
+with open('icon.png', 'wb') as f: f.write(png)
+"
+          mv icon.png fresh/assets/icon.png
+
       - name: Copy Dart code & assets
         run: |
           cp -r lib/* fresh/lib/
@@ -28,6 +48,9 @@ jobs:
 
       - name: Install dependencies
         run: cd fresh && flutter pub get
+
+      - name: Generate launcher icons
+        run: cd fresh && dart run flutter_launcher_icons
 
       - name: Generate code (Hive)
         run: cd fresh && dart run build_runner build --delete-conflicting-outputs 2>&1
