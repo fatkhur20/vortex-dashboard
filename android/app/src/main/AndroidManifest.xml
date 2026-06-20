@@ -29,11 +29,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <service
-            android:name="com.vortex.dashboard.TrackingService"
-            android:foregroundServiceType="location"
-            android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -52,12 +47,5 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="com.vortex.dashboard.BootReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>
