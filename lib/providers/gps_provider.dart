@@ -15,22 +15,39 @@ final gpsDataProvider = StateNotifierProvider<GpsDataNotifier, GpsData?>((ref) {
 
 class GpsDataNotifier extends StateNotifier<GpsData?> {
   StreamSubscription? _sub;
+  Timer? _retryTimer;
+  int _retryCount = 0;
   final Ref _ref;
 
   GpsDataNotifier(this._ref) : super(null) {
+    _initGps();
+  }
+
+  void _initGps() {
     final service = _ref.read(gpsServiceProvider);
-    try {
-      service.startListening();
-    } catch (_) {}
-    _sub = service.gpsDataStream.listen(
-      (data) { state = data; },
-      onError: (_) {},
-    );
+    service.startListening().then((_) {
+      _sub = service.gpsDataStream.listen(
+        (data) {
+          state = data;
+          _retryCount = 0;
+        },
+        onError: (_) {},
+      );
+    }).catchError((_) {
+      _scheduleRetry();
+    });
+  }
+
+  void _scheduleRetry() {
+    if (_retryCount > 5) return;
+    _retryCount++;
+    _retryTimer = Timer(const Duration(seconds: 2), _initGps);
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
   }
 }

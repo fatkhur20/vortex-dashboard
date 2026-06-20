@@ -24,12 +24,14 @@ jobs:
           mkdir -p fresh/assets/fonts fresh/assets/icons
           python3 .github/workflows/genicon.py
 
-      - name: Copy Dart code & assets
+      - name: Copy Dart code, assets & Android config
         run: |
           cp -r lib/* fresh/lib/
           cp pubspec.yaml fresh/pubspec.yaml
           mkdir -p fresh/assets/fonts fresh/assets/icons
           [ -d assets ] && cp -r assets/. fresh/assets/ 2>/dev/null || true
+          [ -f android/app/src/main/AndroidManifest.xml ] && \
+            cp android/app/src/main/AndroidManifest.xml fresh/android/app/src/main/AndroidManifest.xml
 
       - name: Install dependencies
         run: cd fresh && flutter pub get
