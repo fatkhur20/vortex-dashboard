@@ -16,7 +16,6 @@ jobs:
         run: |
           flutter create --org com.vortex test_core
           cd test_core
-          # Only add pure-Dart + essential plugins, NO suspicious ones
           flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
           flutter pub add hive hive_flutter fl_chart
           flutter pub add shared_preferences uuid intl http path_provider
@@ -38,7 +37,7 @@ jobs:
           name: plugin-test-core
           path: test_core/build/app/outputs/flutter-apk/app-debug.apk
 
-      - name: Create test app with all plugins minus notification
+      - name: Create test app with all plugins minus notif
         run: |
           flutter create --org com.vortex test_nonotif
           cd test_nonotif
@@ -69,6 +68,9 @@ jobs:
         run: |
           flutter create --org com.vortex test_nowl
           cd test_nowl
+          # Enable coreLibraryDesugaring for flutter_local_notifications
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion flutter.minSdkVersion\n    compileOptions {\n        coreLibraryDesugaringEnabled true\n        sourceCompatibility JavaVersion.VERSION_1_8\n        targetCompatibility JavaVersion.VERSION_1_8\n    }/' android/app/build.gradle
+          echo "dependencies { coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4' }" >> android/app/build.gradle
           flutter pub add geolocator flutter_map flutter_map_cancellable_tile_provider
           flutter pub add hive hive_flutter fl_chart permission_handler
           flutter pub add shared_preferences uuid intl http path_provider
