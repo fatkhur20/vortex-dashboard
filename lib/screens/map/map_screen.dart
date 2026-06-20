@@ -27,7 +27,6 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
 
   static const double _initialZoom = 17.0;
   static const double _minZoom = 5.0;
-  static const double _maxNativeZoom = 19.0;
   static const double _maxZoom = 20.0;
 
   static const LatLng _defaultCenter = LatLng(-6.2088, 106.8456);
@@ -123,7 +122,6 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               initialZoom: _initialZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
-              maxNativeZoom: _maxNativeZoom,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
               ),
