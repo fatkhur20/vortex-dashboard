@@ -6,5 +6,6 @@
 -keep class io.flutter.plugins.**  { *; }
 -keep class com.vortex.dashboard.** { *; }
 -keep class com.baseflow.** { *; }
--keep class com.hemanthraj.** { *; }
 -keep class dev.fluttercommunity.** { *; }
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
