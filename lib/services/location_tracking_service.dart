@@ -83,7 +83,7 @@ class LocationTrackingService {
         _currentRide = _currentRide!.copyWith(
           distanceKm: _totalDistance,
           maxSpeedKmh: _maxSpeed,
-          averageSpeedKmh: avgSpeed,
+          averageSpeedKmh: avgSpeed.toDouble(),
           maxAltitude: _maxAltitude,
           minAltitude: _minAltitude,
           trackPoints: List.from(_trackPoints),

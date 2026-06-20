@@ -55,7 +55,7 @@ class GpsService {
 
     _isListening = true;
     
-    const LocationSettings locationSettings = LocationSettings(
+    final LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.best,
       distanceFilter: 0,
     );
@@ -92,9 +92,7 @@ class GpsService {
   Future<GpsData?> getCurrentPosition() async {
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best,
-        ),
+        desiredAccuracy: LocationAccuracy.best,
       );
       _currentPosition = position;
       final gpsData = GpsData(
