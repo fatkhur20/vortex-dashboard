@@ -24,14 +24,26 @@ jobs:
           mkdir -p fresh/assets/fonts fresh/assets/icons
           python3 .github/workflows/genicon.py
 
-      - name: Copy Dart code, assets & Android config
+      - name: Copy Dart code & assets
         run: |
           cp -r lib/* fresh/lib/
           cp pubspec.yaml fresh/pubspec.yaml
           mkdir -p fresh/assets/fonts fresh/assets/icons
           [ -d assets ] && cp -r assets/. fresh/assets/ 2>/dev/null || true
-          [ -f android/app/src/main/AndroidManifest.xml ] && \
-            cp android/app/src/main/AndroidManifest.xml fresh/android/app/src/main/AndroidManifest.xml
+
+      - name: Add Android permissions
+        run: |
+          python3 -c "
+m = open('fresh/android/app/src/main/AndroidManifest.xml').read()
+perms = '''    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>
+    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>
+    <uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\"/>
+'''
+m = m.replace('<application', perms + '<application')
+m = m.replace('android:label=\"vortex_dashboard\"', 'android:label=\"Vortex Dashboard\"')
+open('fresh/android/app/src/main/AndroidManifest.xml','w').write(m)
+print('Patched manifest')
+"
 
       - name: Install dependencies
         run: cd fresh && flutter pub get
