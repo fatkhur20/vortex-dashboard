@@ -1,0 +1,72 @@
+name: Rebuild Vortex Dashboard
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate fresh project
+        run: |
+          flutter create --org com.vortex --project-name vortex_dashboard fresh
+          # Skip default test
+          rm -rf fresh/test
+
+      - name: Copy Dart code
+        run: |
+          cp -r lib fresh/lib
+          cp -r assets fresh/ 2>/dev/null || true
+
+      - name: Add dependencies (latest versions)
+        run: |
+          cd fresh
+          flutter pub add flutter_riverpod riverpod_annotation
+          flutter pub add geolocator
+          flutter pub add flutter_map flutter_map_cancellable_tile_provider
+          flutter pub add hive hive_flutter
+          flutter pub add fl_chart
+          flutter pub add permission_handler
+          flutter pub add shared_preferences uuid intl http path_provider
+          flutter pub add sensors_plus geocoding latlong2 equatable
+          flutter pub add xml csv url_launcher share_plus
+          flutter pub add smooth_page_indicator shimmer
+          flutter pub add package_info_plus
+          flutter pub add wakelock_plus
+
+      - name: Add dev dependencies
+        run: |
+          cd fresh
+          flutter pub add --dev build_runner hive_generator json_serializable freezed riverpod_generator
+
+      - name: Generate Hive code
+        run: |
+          cd fresh
+          dart run build_runner build --delete-conflicting-outputs 2>&1
+
+      - name: Build Debug APK
+        run: |
+          cd fresh
+          flutter build apk --debug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vortex-fresh-debug
+          path: fresh/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Build Release APK
+        run: |
+          cd fresh
+          flutter build apk --release --split-per-abi
+
+      - name: Upload Release ARM64
+        uses: actions/upload-artifact@v4
+        with:
+          name: vortex-fresh-arm64-v8a
+          path: fresh/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
