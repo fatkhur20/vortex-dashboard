@@ -1,0 +1,71 @@
+name: Build Minimal Test App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Create minimal test app
+        run: |
+          flutter create --org com.vortex test_minimal
+          cd test_minimal
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+
+          void main() {
+            runApp(const MyApp());
+          }
+
+          class MyApp extends StatelessWidget {
+            const MyApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: true,
+                home: Scaffold(
+                  appBar: AppBar(title: const Text('Test MIUI')),
+                  body: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Hello MIUI Device!', style: TextStyle(fontSize: 24)),
+                        SizedBox(height: 20),
+                        Text('If you see this, Flutter works on this device.'),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+          EOF
+
+      - name: Build Release APK
+        run: |
+          cd test_minimal
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-minimal-apk
+          path: test_minimal/build/app/outputs/flutter-apk/app-release.apk
