@@ -1,20 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortex_dashboard/services/gps_service.dart';
+import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/services/storage_service.dart';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
 
 final dashboardDataProvider = Provider<DashboardData>((ref) {
-  final gpsService = GpsService();
-  final lastData = gpsService.lastGpsData;
+  final gpsData = ref.watch(gpsDataProvider);
   final storage = StorageService();
 
   return DashboardData(
-    currentSpeed: lastData?.speed ?? 0,
-    latitude: lastData?.latitude ?? 0,
-    longitude: lastData?.longitude ?? 0,
-    altitude: lastData?.altitude ?? 0,
-    heading: lastData?.heading ?? 0,
-    accuracy: lastData?.accuracy ?? 0,
+    currentSpeed: gpsData?.speed ?? 0,
+    latitude: gpsData?.latitude ?? 0,
+    longitude: gpsData?.longitude ?? 0,
+    altitude: gpsData?.altitude ?? 0,
+    heading: gpsData?.heading ?? 0,
+    accuracy: gpsData?.accuracy ?? 0,
     tripADistance: storage.getDouble(AppConstants.tripAKey, defaultValue: 0),
     tripBDistance: storage.getDouble(AppConstants.tripBKey, defaultValue: 0),
     odometerTotal: storage.getDouble(AppConstants.odometerKey, defaultValue: 0),

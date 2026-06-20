@@ -19,55 +19,78 @@ class CompassService {
   StreamSubscription? _magnetometerSubscription;
   StreamSubscription? _accelerometerSubscription;
 
-  List<double> _gravity = [0, 0, 0];
-  List<double> _geomagnetic = [0, 0, 0];
+  double _lastHeading = 0;
+  static const double _smoothFactor = 0.3;
+
+  static const double _pi = pi;
+  static const double _rad2deg = 180.0 / _pi;
 
   Future<void> startListening() async {
     try {
-      _accelerometerSubscription = accelerometerEventStream().listen(
+      _accelerometerSubscription = accelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 100),
+      ).listen(
         (AccelerometerEvent event) {
-          _gravity = [event.x, event.y, event.z];
-          _computeHeading();
+          _lastGravity = [event.x, event.y, event.z];
         },
-        onError: (_) {},
+        onError: (e) {},
       );
     } catch (_) {}
 
     try {
-      _magnetometerSubscription = magnetometerEventStream().listen(
+      _magnetometerSubscription = magnetometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 100),
+      ).listen(
         (MagnetometerEvent event) {
-          _geomagnetic = [event.x, event.y, event.z];
+          _lastMagnetic = [event.x, event.y, event.z];
           _computeHeading();
         },
-        onError: (_) {},
+        onError: (e) {},
       );
     } catch (_) {}
   }
 
+  List<double> _lastGravity = [0, 0, 9.8];
+  List<double> _lastMagnetic = [0, 0, 0];
+
   void _computeHeading() {
-    final gx = _gravity[0], gy = _gravity[1], gz = _gravity[2];
-    final mx = _geomagnetic[0], my = _geomagnetic[1], mz = _geomagnetic[2];
+    final g = _lastGravity;
+    final m = _lastMagnetic;
 
-    final norm = sqrt(gx * gx + gy * gy + gz * gz);
-    if (norm == 0) return;
-    final ax = gx / norm, ay = gy / norm, az = gz / norm;
+    final Ax = g[0], Ay = g[1], Az = g[2];
+    final normA = sqrt(Ax * Ax + Ay * Ay + Az * Az);
+    if (normA < 0.1) return;
 
-    final ex = my * az - mz * ay;
-    final ey = mz * ax - mx * az;
-    final ez = mx * ay - my * ax;
+    final Ex = m[0], Ey = m[1], Ez = m[2];
+    final normE = sqrt(Ex * Ex + Ey * Ey + Ez * Ez);
+    if (normE < 0.1) return;
 
-    final eNorm = sqrt(ex * ex + ey * ey + ez * ez);
-    if (eNorm == 0) return;
-    final nx = ex / eNorm, ny = ey / eNorm, nz = ez / eNorm;
+    final Hx = Ey * Az - Ez * Ay;
+    final Hy = Ez * Ax - Ex * Az;
+    final Hz = Ex * Ay - Ey * Ax;
 
-    final mx2 = mx * nx + my * ny + mz * nz;
-    final my2 = mx * (ay * nz - az * ny) + my * (az * nx - ax * nz) + mz * (ax * ny - ay * nx);
+    final normH = sqrt(Hx * Hx + Hy * Hy + Hz * Hz);
+    if (normH < 0.1) return;
 
-    var heading = atan2(my2, mx2) * 180 / pi;
+    final invH = 1.0 / normH;
+    final Nx = Hx * invH;
+    final Ny = Hy * invH;
+    final Nz = Hz * invH;
+
+    final invA = 1.0 / normA;
+    final Mx = Ny * Az - Nz * Ay;
+    final My = Nz * Ax - Nx * Az;
+
+    final Mx2 = Ex * Mx + Ey * My + Ez * Nz;
+    final My2 = Ex * (Ay * Nz - Az * Ny) + Ey * (Az * Nx - Ax * Nz) + Ez * (Ax * Ny - Ay * Nx);
+
+    var heading = atan2(My2, Mx2) * _rad2deg;
     heading = (heading + 360) % 360;
 
-    _currentHeading = heading;
+    _currentHeading = _smoothFactor * heading + (1 - _smoothFactor) * _lastHeading;
+    _lastHeading = _currentHeading;
     _isCalibrated = true;
+
     _headingController.add(_currentHeading);
   }
 

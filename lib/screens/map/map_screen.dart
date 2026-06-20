@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
@@ -19,6 +20,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _followMode = true;
   bool _darkMode = true;
   bool _satelliteMode = false;
+  bool _mapReady = false;
 
   static const LatLng _defaultLocation = LatLng(-6.2088, 106.8456);
   static const double _defaultZoom = 15.0;
@@ -26,7 +28,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _centerOnUser());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapReady = true;
+      _centerOnUser();
+    });
   }
 
   @override
@@ -146,16 +151,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   setState(() => _followMode = false);
                 }
               },
-              onPositionChanged: (pos, hasGesture) {
-                if (hasGesture && _followMode) {
-                  setState(() => _followMode = false);
-                }
-              },
             ),
             children: [
               TileLayer(
                 urlTemplate: tileUrl,
                 userAgentPackageName: 'com.vortex.dashboard',
+                tileProvider: CancellableNetworkTileProvider(),
                 subdomains: const ['a', 'b', 'c'],
               ),
               PolylineLayer(polylines: _buildPolylines()),
