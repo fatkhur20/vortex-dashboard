@@ -22,19 +22,7 @@ jobs:
       - name: Generate app icon
         run: |
           mkdir -p fresh/assets/fonts fresh/assets/icons
-          if command -v convert &> /dev/null; then
-            convert -size 1024x1024 xc:'#0a0f1e' fresh/assets/icon.png
-          else
-            python3 -c "
-import struct, zlib
-w=1024;h=1024;r=10;g=15;b=30
-def c(t,d):
-    return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
-row=b'\x00'+bytes([r,g,b])*w
-raw=row*h
-open('fresh/assets/icon.png','wb').write(b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b''))
-"
-          fi
+          python3 .github/workflows/genicon.py
 
       - name: Copy Dart code & assets
         run: |
