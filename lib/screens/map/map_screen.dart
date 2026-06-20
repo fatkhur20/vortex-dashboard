@@ -104,8 +104,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final tileUrl = _satelliteMode
         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
         : _darkMode
-            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+            : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -154,8 +154,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             children: [
               TileLayer(
                 urlTemplate: tileUrl,
-                userAgentPackageName: 'com.vortex.dashboard',
-                subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'com.vortex.app',
+                errorTileCallback: (tile, error, stackTrace) {
+                  debugPrint('Tile error: $tile - $error');
+                },
               ),
               PolylineLayer(polylines: _buildPolylines()),
               MarkerLayer(
