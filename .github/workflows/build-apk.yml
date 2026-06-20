@@ -16,35 +16,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate fresh project
+        run: flutter create --org com.vortex --project-name vortex_dashboard --platforms android fresh
+
+      - name: Copy Dart code
+        run: |
+          cp -r lib/* fresh/lib/
+          cp pubspec.yaml fresh/pubspec.yaml
+          [ -d assets ] && cp -r assets/* fresh/assets/ 2>/dev/null || true
+
       - name: Install dependencies
-        run: flutter pub get
+        run: cd fresh && flutter pub get
+
+      - name: Generate code (Hive)
+        run: cd fresh && dart run build_runner build --delete-conflicting-outputs 2>&1
 
       - name: Build Debug APK
-        run: flutter build apk --debug
+        run: cd fresh && flutter build apk --debug
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: vortex-dashboard-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: fresh/build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Build Release APK
-        run: flutter build apk --release --split-per-abi
+        run: cd fresh && flutter build apk --release --split-per-abi
 
       - name: Upload APK (ARM64)
         uses: actions/upload-artifact@v4
         with:
           name: vortex-dashboard-arm64-v8a
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          path: fresh/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
       - name: Upload APK (ARM32)
         uses: actions/upload-artifact@v4
         with:
           name: vortex-dashboard-armeabi-v7a
-          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          path: fresh/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 
       - name: Upload APK (x86_64)
         uses: actions/upload-artifact@v4
         with:
           name: vortex-dashboard-x86_64
-          path: build/app/outputs/flutter-apk/app-x86_64-release.apk
+          path: fresh/build/app/outputs/flutter-apk/app-x86_64-release.apk
