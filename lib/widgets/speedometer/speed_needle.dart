@@ -58,7 +58,7 @@ class _NeedlePainter extends CustomPainter {
     );
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
     canvas.drawLine(
@@ -70,7 +70,7 @@ class _NeedlePainter extends CustomPainter {
     canvas.drawCircle(center, 5, Paint()..color = Colors.white);
     canvas.drawCircle(
       center, 8, Paint()
-      ..color = ThemeConstants.primaryColor.withOpacity(0.4)
+      ..color = ThemeConstants.primaryColor.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5,
     );

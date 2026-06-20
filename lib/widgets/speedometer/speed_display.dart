@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/core/utils/extensions.dart';
 
 class SpeedDisplay extends StatelessWidget {
@@ -29,11 +28,11 @@ class SpeedDisplay extends StatelessWidget {
             letterSpacing: 4,
             shadows: [
               Shadow(
-                color: color.withOpacity(0.4),
+                color: color.withValues(alpha: 0.4),
                 blurRadius: 30,
               ),
               Shadow(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 blurRadius: 60,
               ),
             ],
@@ -42,7 +41,7 @@ class SpeedDisplay extends StatelessWidget {
         Text(
           useKmh ? 'KM/H' : 'MPH',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 6,

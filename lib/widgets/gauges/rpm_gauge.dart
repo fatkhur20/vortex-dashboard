@@ -39,7 +39,7 @@ class RpmGauge extends StatelessWidget {
               Text(
                 'RPM',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   fontSize: size * 0.06,
                 ),
               ),
@@ -71,12 +71,12 @@ class _RpmPainter extends CustomPainter {
 
     // Background
     final bgPaint = Paint()
-      ..color = const Color(0xFF1A1A2E).withOpacity(0.6);
+      ..color = const Color(0xFF1A1A2E).withValues(alpha: 0.6);
     canvas.drawCircle(center, radius, bgPaint);
 
     // Segments
     const segments = 10;
-    final segmentAngle = (math.pi * 1.5) / segments;
+    const segmentAngle = (math.pi * 1.5) / segments;
 
     for (int i = 0; i < segments; i++) {
       final startAngle = math.pi * 1.25 + i * segmentAngle;
@@ -88,7 +88,7 @@ class _RpmPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..color = isActive
             ? (i >= segments - 2 ? ThemeConstants.speedCritical : color)
-            : Colors.white.withOpacity(0.1);
+            : Colors.white.withValues(alpha: 0.1);
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius - 2),

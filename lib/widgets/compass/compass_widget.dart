@@ -72,17 +72,17 @@ class _CompassPainter extends CustomPainter {
 
   void _drawOuterRing(Canvas canvas, Offset center, double radius) {
     final bgPaint = Paint()
-      ..color = const Color(0xFF1A1A2E).withOpacity(0.8);
+      ..color = const Color(0xFF1A1A2E).withValues(alpha: 0.8);
     canvas.drawCircle(center, radius, bgPaint);
 
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = ThemeConstants.primaryColor.withOpacity(0.5);
+      ..color = ThemeConstants.primaryColor.withValues(alpha: 0.5);
     canvas.drawCircle(center, radius, borderPaint);
 
     final glowPaint = Paint()
-      ..color = ThemeConstants.primaryColor.withOpacity(0.1)
+      ..color = ThemeConstants.primaryColor.withValues(alpha: 0.1)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
     canvas.drawCircle(center, radius, glowPaint);
   }
@@ -106,7 +106,7 @@ class _CompassPainter extends CustomPainter {
           style: TextStyle(
             color: isNorth
                 ? ThemeConstants.errorColor
-                : Colors.white.withOpacity(0.6),
+                : Colors.white.withValues(alpha: 0.6),
             fontSize: 16,
             fontWeight: isNorth ? FontWeight.bold : FontWeight.normal,
           ),
@@ -142,8 +142,8 @@ class _CompassPainter extends CustomPainter {
 
       final paint = Paint()
         ..color = isMajor
-            ? Colors.white.withOpacity(0.4)
-            : Colors.white.withOpacity(0.15)
+            ? Colors.white.withValues(alpha: 0.4)
+            : Colors.white.withValues(alpha: 0.15)
         ..strokeWidth = isMajor ? 1.5 : 1;
 
       canvas.drawLine(startPoint, endPoint, paint);

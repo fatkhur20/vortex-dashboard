@@ -93,29 +93,29 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return ThemeConstants.primaryColor.withOpacity(0.3);
+            return ThemeConstants.primaryColor.withValues(alpha: 0.3);
           }
-          return Colors.grey.withOpacity(0.3);
+          return Colors.grey.withValues(alpha: 0.3);
         }),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: ThemeConstants.primaryColor,
-        inactiveTrackColor: Colors.grey.withOpacity(0.3),
+        inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
         thumbColor: ThemeConstants.primaryColor,
-        overlayColor: ThemeConstants.primaryColor.withOpacity(0.1),
+        overlayColor: ThemeConstants.primaryColor.withValues(alpha: 0.1),
         valueIndicatorColor: ThemeConstants.primaryColor,
         valueIndicatorTextStyle: const TextStyle(color: Colors.black),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeConstants.borderRadiusSmall),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeConstants.borderRadiusSmall),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeConstants.borderRadiusSmall),

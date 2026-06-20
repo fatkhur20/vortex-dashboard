@@ -34,7 +34,6 @@ class GlassCard extends StatelessWidget {
     EdgeInsetsGeometry? margin,
   }) {
     return GlassCard(
-      child: child,
       borderRadius: borderRadius,
       padding: padding,
       margin: margin,
@@ -43,6 +42,7 @@ class GlassCard extends StatelessWidget {
         ThemeConstants.neonBlue.withValues(alpha: 0.03),
         Colors.transparent,
       ],
+      child: child,
     );
   }
 

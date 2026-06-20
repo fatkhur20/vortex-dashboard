@@ -10,15 +10,15 @@ class Glassmorphism {
     double borderWidth = 0.5,
   }) {
     return BoxDecoration(
-      color: Colors.white.withOpacity(opacity),
+      color: Colors.white.withValues(alpha: opacity),
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(
-        color: borderColor ?? Colors.white.withOpacity(0.2),
+        color: borderColor ?? Colors.white.withValues(alpha: 0.2),
         width: borderWidth,
       ),
       boxShadow: [
         BoxShadow(
-          color: ThemeConstants.primaryColor.withOpacity(0.1),
+          color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
           blurRadius: blur,
           spreadRadius: 0,
         ),
@@ -38,18 +38,18 @@ class Glassmorphism {
         end: Alignment.bottomRight,
         colors: gradientColors ??
             [
-              Colors.white.withOpacity(opacity),
-              Colors.white.withOpacity(opacity * 0.5),
+              Colors.white.withValues(alpha: opacity),
+              Colors.white.withValues(alpha: opacity * 0.5),
             ],
       ),
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         width: 0.5,
       ),
       boxShadow: [
         BoxShadow(
-          color: ThemeConstants.primaryColor.withOpacity(0.08),
+          color: ThemeConstants.primaryColor.withValues(alpha: 0.08),
           blurRadius: blur,
           spreadRadius: 0,
         ),
@@ -65,17 +65,17 @@ class Glassmorphism {
     return BoxDecoration(
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(
-        color: neonColor.withOpacity(0.5),
+        color: neonColor.withValues(alpha: 0.5),
         width: borderWidth,
       ),
       boxShadow: [
         BoxShadow(
-          color: neonColor.withOpacity(0.2),
+          color: neonColor.withValues(alpha: 0.2),
           blurRadius: 8,
           spreadRadius: 1,
         ),
         BoxShadow(
-          color: neonColor.withOpacity(0.1),
+          color: neonColor.withValues(alpha: 0.1),
           blurRadius: 16,
           spreadRadius: 2,
         ),

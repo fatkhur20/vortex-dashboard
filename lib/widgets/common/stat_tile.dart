@@ -37,7 +37,7 @@ class StatTile extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -52,7 +52,7 @@ class StatTile extends StatelessWidget {
             shadows: showGlow
                 ? [
                     Shadow(
-                      color: (valueColor ?? Colors.white).withOpacity(0.3),
+                      color: (valueColor ?? Colors.white).withValues(alpha: 0.3),
                       blurRadius: 10,
                     ),
                   ]

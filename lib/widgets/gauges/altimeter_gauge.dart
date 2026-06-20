@@ -50,7 +50,7 @@ class AltimeterGauge extends StatelessWidget {
                     Text(
                       'm',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 12,
                       ),
                     ),
@@ -86,7 +86,7 @@ class AltimeterGauge extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             fontSize: 9,
           ),
         ),
@@ -108,14 +108,14 @@ class _AltimeterPainter extends CustomPainter {
 
     // Background
     final bgPaint = Paint()
-      ..color = const Color(0xFF1A1A2E).withOpacity(0.6);
+      ..color = const Color(0xFF1A1A2E).withValues(alpha: 0.6);
     canvas.drawCircle(center, radius, bgPaint);
 
     // Border
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
-      ..color = Colors.white.withOpacity(0.1);
+      ..color = Colors.white.withValues(alpha: 0.1);
     canvas.drawCircle(center, radius, borderPaint);
 
     // Arc
@@ -124,8 +124,8 @@ class _AltimeterPainter extends CustomPainter {
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round
       ..color = altitude > 0
-          ? ThemeConstants.warningColor.withOpacity(0.8)
-          : ThemeConstants.primaryColor.withOpacity(0.8);
+          ? ThemeConstants.warningColor.withValues(alpha: 0.8)
+          : ThemeConstants.primaryColor.withValues(alpha: 0.8);
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius - 2),
@@ -139,7 +139,7 @@ class _AltimeterPainter extends CustomPainter {
     final glowPaint = Paint()
       ..color = (altitude > 0
           ? ThemeConstants.warningColor
-          : ThemeConstants.primaryColor).withOpacity(0.1)
+          : ThemeConstants.primaryColor).withValues(alpha: 0.1)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawCircle(center, radius * 0.6, glowPaint);
   }

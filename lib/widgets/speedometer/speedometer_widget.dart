@@ -51,7 +51,7 @@ class SpeedometerWidget extends StatelessWidget {
                   letterSpacing: 2,
                   shadows: [
                     Shadow(
-                      color: color.withOpacity(0.5),
+                      color: color.withValues(alpha: 0.5),
                       blurRadius: 20,
                     ),
                   ],
@@ -60,7 +60,7 @@ class SpeedometerWidget extends StatelessWidget {
               Text(
                 useKmh ? 'KM/H' : 'MPH',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: size * 0.04,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 4,
@@ -71,7 +71,7 @@ class SpeedometerWidget extends StatelessWidget {
                 Text(
                   '${rpm!.toStringAsFixed(0)}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withValues(alpha: 0.4),
                     fontSize: size * 0.035,
                     fontWeight: FontWeight.w400,
                   ),
@@ -127,8 +127,8 @@ class _SpeedometerPainter extends CustomPainter {
     final paint = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF1A1A2E).withOpacity(0.8),
-          const Color(0xFF0D0D0D).withOpacity(0.5),
+          const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+          const Color(0xFF0D0D0D).withValues(alpha: 0.5),
           Colors.transparent,
         ],
         stops: const [0.0, 0.6, 1.0],
@@ -141,9 +141,9 @@ class _SpeedometerPainter extends CustomPainter {
       ..strokeWidth = 3
       ..shader = LinearGradient(
         colors: [
-          Colors.white.withOpacity(0.1),
-          Colors.white.withOpacity(0.05),
-          Colors.white.withOpacity(0.1),
+          Colors.white.withValues(alpha: 0.1),
+          Colors.white.withValues(alpha: 0.05),
+          Colors.white.withValues(alpha: 0.1),
         ],
       ).createShader(Rect.fromCircle(center: center, radius: radius));
 
@@ -160,7 +160,7 @@ class _SpeedometerPainter extends CustomPainter {
     const endAngle = 30.0 * math.pi / 180;
     const sweepAngle = 240.0 * math.pi / 180;
 
-    paint.color = Colors.white.withOpacity(0.05);
+    paint.color = Colors.white.withValues(alpha: 0.05);
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       startAngle,
@@ -189,7 +189,7 @@ class _SpeedometerPainter extends CustomPainter {
       startAngle,
       sweepAngle * 0.15,
       false,
-      paint..color = color.withOpacity(0.3),
+      paint..color = color.withValues(alpha: 0.3),
     );
   }
 
@@ -219,8 +219,8 @@ class _SpeedometerPainter extends CustomPainter {
       );
 
       paint.color = isMajor
-          ? Colors.white.withOpacity(0.6)
-          : Colors.white.withOpacity(0.2);
+          ? Colors.white.withValues(alpha: 0.6)
+          : Colors.white.withValues(alpha: 0.2);
       paint.strokeWidth = isMajor ? 2 : 1;
 
       canvas.drawLine(startPoint, endPoint, paint);
@@ -239,7 +239,7 @@ class _SpeedometerPainter extends CustomPainter {
           text: TextSpan(
             text: '$displayValue',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -265,13 +265,13 @@ class _SpeedometerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8
       ..strokeCap = StrokeCap.round
-      ..color = color.withOpacity(0.8);
+      ..color = color.withValues(alpha: 0.8);
 
     paint.shader = LinearGradient(
       colors: [
-        color.withOpacity(0.3),
+        color.withValues(alpha: 0.3),
         color,
-        color.withOpacity(0.8),
+        color.withValues(alpha: 0.8),
       ],
     ).createShader(Rect.fromCircle(center: center, radius: radius));
 
@@ -307,7 +307,7 @@ class _SpeedometerPainter extends CustomPainter {
     canvas.drawLine(center, needlePoint, needlePaint);
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
 
     canvas.drawLine(center, needlePoint, glowPaint);
@@ -315,13 +315,13 @@ class _SpeedometerPainter extends CustomPainter {
 
   void _drawCenterDot(Canvas canvas, Offset center) {
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(center, 6, dotPaint);
 
     final ringPaint = Paint()
-      ..color = const Color(0xFF00E5FF).withOpacity(0.4)
+      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -332,8 +332,8 @@ class _SpeedometerPainter extends CustomPainter {
     final gradientPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          color.withOpacity(0.08),
-          color.withOpacity(0.02),
+          color.withValues(alpha: 0.08),
+          color.withValues(alpha: 0.02),
           Colors.transparent,
         ],
         stops: const [0.0, 0.5, 1.0],
