@@ -42,6 +42,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
     final storage = StorageService();
     final contactName = storage.getString('emergency_contact');
     final contactPhone = storage.getString('emergency_contact_phone');
+    final hasContact = contactName.isNotEmpty && contactPhone.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -62,7 +63,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
               _buildInstructions(),
             ],
             const Spacer(flex: 2),
-            if (contactName != null && contactPhone != null)
+            if (hasContact)
               _buildContactInfo(contactName, contactPhone),
             const SizedBox(height: 32),
           ],
@@ -96,7 +97,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
                 shape: BoxShape.circle,
                 color: _sosActivated
                     ? ThemeConstants.errorColor
-                    : ThemeConstants.errorColor.withOpacity(0.2),
+                    : ThemeConstants.errorColor.withValues(alpha: 0.2),
                 border: Border.all(
                   color: ThemeConstants.errorColor,
                   width: 3,
@@ -104,7 +105,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
                 boxShadow: _sosActivated
                     ? [
                         BoxShadow(
-                          color: ThemeConstants.errorColor.withOpacity(0.5),
+                          color: ThemeConstants.errorColor.withValues(alpha: 0.5),
                           blurRadius: 40,
                           spreadRadius: 10,
                         ),
@@ -127,8 +128,8 @@ class _SosScreenState extends ConsumerState<SosScreen>
                     _sosActivated ? 'ACTIVATED' : 'LONG PRESS',
                     style: TextStyle(
                       color: _sosActivated
-                          ? Colors.white.withOpacity(0.7)
-                          : ThemeConstants.errorColor.withOpacity(0.5),
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : ThemeConstants.errorColor.withValues(alpha: 0.5),
                       fontSize: 12,
                       letterSpacing: 2,
                     ),
@@ -166,7 +167,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
             'Your emergency contact will be notified\nwith your current location',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 11,
             ),
           ),
@@ -190,7 +191,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
           Text(
             'Location shared with emergency contact',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 12,
               letterSpacing: 1,
             ),
@@ -208,7 +209,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
           Text(
             'Accuracy: ${gpsData.accuracy.toStringAsFixed(0)}m',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 11,
             ),
           ),
@@ -254,7 +255,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
               Text(
                 phone,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 12,
                 ),
               ),
@@ -263,7 +264,7 @@ class _SosScreenState extends ConsumerState<SosScreen>
           const Spacer(),
           Icon(
             Icons.arrow_forward_ios,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             size: 16,
           ),
         ],
@@ -301,7 +302,6 @@ class _SosScreenState extends ConsumerState<SosScreen>
   }
 
   void _triggerSos() {
-    // In a real app, this would send SMS/email with location
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('SOS Alert Sent'),
@@ -309,20 +309,5 @@ class _SosScreenState extends ConsumerState<SosScreen>
         duration: const Duration(seconds: 3),
       ),
     );
-  }
-}
-
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget Function(BuildContext context, Widget? child) builder;
-
-  const AnimatedBuilder({
-    super.key,
-    required super.listenable,
-    required this.builder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return builder(context, null);
   }
 }

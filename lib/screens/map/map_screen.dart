@@ -83,7 +83,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         points: points,
         color: ThemeConstants.primaryColor,
         strokeWidth: 4,
-        isDotted: false,
       ),
     ];
   }
@@ -103,12 +102,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         : _darkMode
             ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
             : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-    final attribution = _satelliteMode
-        ? '&copy; Esri'
-        : _darkMode
-            ? '&copy; OpenStreetMap contributors &copy; CARTO'
-            : '&copy; OpenStreetMap contributors';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -164,7 +157,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 urlTemplate: tileUrl,
                 userAgentPackageName: 'com.vortex.dashboard',
                 subdomains: const ['a', 'b', 'c'],
-                backgroundColor: Colors.black,
               ),
               PolylineLayer(polylines: _buildPolylines()),
               MarkerLayer(
@@ -183,7 +175,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: ThemeConstants.primaryColor.withOpacity(0.5),
+                            color: ThemeConstants.primaryColor.withValues(alpha: 0.5),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -236,22 +228,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 children: [
                   _MetricTile(
                     label: 'SPEED',
-                    value: gpsData.speed.toStringAsFixed(1),
+                    value: (gpsData?.speed ?? 0).toStringAsFixed(1),
                     unit: 'km/h',
                   ),
                   _MetricTile(
                     label: 'ALT',
-                    value: gpsData.altitude.toStringAsFixed(0),
+                    value: (gpsData?.altitude ?? 0).toStringAsFixed(0),
                     unit: 'm',
                   ),
                   _MetricTile(
                     label: 'HEADING',
-                    value: gpsData.heading.toStringAsFixed(0),
+                    value: (gpsData?.heading ?? 0).toStringAsFixed(0),
                     unit: '\u00B0',
                   ),
                   _MetricTile(
                     label: 'ACCURACY',
-                    value: gpsData.accuracy.toStringAsFixed(1),
+                    value: (gpsData?.accuracy ?? 0).toStringAsFixed(1),
                     unit: 'm',
                   ),
                 ],
@@ -283,7 +275,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.5,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -351,7 +343,7 @@ class _MetricTile extends StatelessWidget {
             fontSize: 9,
             fontWeight: FontWeight.w600,
             letterSpacing: 1.2,
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: 4),
@@ -367,7 +359,7 @@ class _MetricTile extends StatelessWidget {
           unit,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
           ),
         ),
       ],

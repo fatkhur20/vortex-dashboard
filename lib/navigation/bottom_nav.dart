@@ -5,13 +5,6 @@ import 'package:vortex_dashboard/screens/map/map_screen.dart';
 import 'package:vortex_dashboard/screens/tracking/tracking_screen.dart';
 import 'package:vortex_dashboard/screens/performance/performance_screen.dart';
 import 'package:vortex_dashboard/screens/settings/settings_screen.dart';
-import 'package:vortex_dashboard/screens/compass/compass_screen.dart';
-import 'package:vortex_dashboard/screens/altimeter/altimeter_screen.dart';
-import 'package:vortex_dashboard/screens/gps_status/gps_status_screen.dart';
-import 'package:vortex_dashboard/screens/weather/weather_screen.dart';
-import 'package:vortex_dashboard/screens/ride_history/ride_history_screen.dart';
-import 'package:vortex_dashboard/screens/sos/sos_screen.dart';
-import 'package:vortex_dashboard/screens/trip_analytics/trip_analytics_screen.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -29,7 +22,7 @@ class BottomNavBar extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             width: 0.5,
           ),
         ),
@@ -103,12 +96,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     width: 0.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       blurRadius: 20,
                       offset: const Offset(0, -5),
                     ),

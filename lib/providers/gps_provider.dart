@@ -9,54 +9,42 @@ final gpsServiceProvider = Provider<GpsService>((ref) {
   return service;
 });
 
-final gpsDataProvider = StreamNotifierProvider<GpsDataNotifier, GpsData>(
-  GpsDataNotifier.new,
-);
-
-final gpsStatusProvider = Provider<GpsStatus>((ref) {
-  final service = ref.watch(gpsServiceProvider);
-  final lastData = service.lastGpsData;
-  return GpsStatus(
-    isAvailable: service.isListening,
-    lastData: lastData,
-  );
+final gpsDataProvider = StateNotifierProvider<GpsDataNotifier, GpsData?>((ref) {
+  return GpsDataNotifier(ref);
 });
 
-class GpsStatus {
-  final bool isAvailable;
-  final GpsData? lastData;
+class GpsDataNotifier extends StateNotifier<GpsData?> {
+  StreamSubscription? _sub;
+  final Ref _ref;
 
-  GpsStatus({this.isAvailable = false, this.lastData});
-}
-
-class GpsDataNotifier extends StreamNotifier<GpsData> {
-  @override
-  Stream<GpsData> build() {
-    final service = ref.watch(gpsServiceProvider);
+  GpsDataNotifier(this._ref) : super(null) {
+    final service = _ref.read(gpsServiceProvider);
     service.startListening();
-    return service.gpsDataStream;
+    _sub = service.gpsDataStream.listen((data) {
+      state = data;
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }
 
 final currentSpeedProvider = Provider<double>((ref) {
-  final gpsData = ref.watch(gpsDataProvider);
-  return gpsData.speed;
+  return ref.watch(gpsDataProvider)?.speed ?? 0;
 });
 
 final currentAltitudeProvider = Provider<double>((ref) {
-  final gpsData = ref.watch(gpsDataProvider);
-  return gpsData.altitude;
+  return ref.watch(gpsDataProvider)?.altitude ?? 0;
 });
 
 final currentLocationProvider = Provider<Map<String, double>>((ref) {
-  final gpsData = ref.watch(gpsDataProvider);
-  return {
-    'lat': gpsData.latitude,
-    'lng': gpsData.longitude,
-  };
+  final d = ref.watch(gpsDataProvider);
+  return {'lat': d?.latitude ?? 0, 'lng': d?.longitude ?? 0};
 });
 
 final gpsAccuracyProvider = Provider<double>((ref) {
-  final gpsData = ref.watch(gpsDataProvider);
-  return gpsData.accuracy;
+  return ref.watch(gpsDataProvider)?.accuracy ?? 0;
 });

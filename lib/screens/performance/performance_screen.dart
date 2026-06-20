@@ -21,6 +21,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
   Widget build(BuildContext context) {
     final perf = ref.watch(performanceProvider);
     final gpsData = ref.watch(gpsDataProvider);
+    final speed = gpsData?.speed ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +33,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              _buildCurrentSpeed(gpsData.speed),
+              _buildCurrentSpeed(speed),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -98,9 +99,9 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                   children: [
                     StatTile(
                       label: 'Current Speed',
-                      value: '${gpsData.speed.toStringAsFixed(1)} km/h',
+                      value: '${speed.toStringAsFixed(1)} km/h',
                       icon: Icons.speed,
-                      valueColor: gpsData.speed.speedColor,
+                      valueColor: speed.speedColor,
                     ),
                     const Divider(),
                     StatTile(
@@ -195,7 +196,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
               fontWeight: FontWeight.w900,
               shadows: [
                 Shadow(
-                  color: speed.speedColor.withOpacity(0.3),
+                  color: speed.speedColor.withValues(alpha: 0.3),
                   blurRadius: 30,
                 ),
               ],
@@ -215,7 +216,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
         Text(
           time != null ? '${time.toStringAsFixed(2)}s' : '--:--',
           style: TextStyle(
-            color: time != null ? Colors.white : Colors.white.withOpacity(0.3),
+            color: time != null ? Colors.white : Colors.white.withValues(alpha: 0.3),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -230,7 +231,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     return Text(
       text,
       style: TextStyle(
-        color: Colors.white.withOpacity(0.4),
+        color: Colors.white.withValues(alpha: 0.4),
         fontSize: 10,
         letterSpacing: 1,
       ),

@@ -12,7 +12,8 @@ class GpsStatusScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gpsData = ref.watch(gpsDataProvider);
 
-    final signalStrength = _getSignalStrength(gpsData.accuracy);
+    final accuracy = gpsData?.accuracy ?? 0.0;
+    final signalStrength = _getSignalStrength(accuracy);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,50 +26,50 @@ class GpsStatusScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSignalStrengthCard(signalStrength),
+              _buildSignalStrengthCard(accuracy),
               const SizedBox(height: 16),
               GlassCard(
                 child: Column(
                   children: [
                     StatTile(
                       label: 'Latitude',
-                      value: gpsData.latitude.toStringAsFixed(6),
+                      value: (gpsData?.latitude ?? 0).toStringAsFixed(6),
                       icon: Icons.public,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Longitude',
-                      value: gpsData.longitude.toStringAsFixed(6),
+                      value: (gpsData?.longitude ?? 0).toStringAsFixed(6),
                       icon: Icons.public,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'GPS Accuracy',
-                      value: '${gpsData.accuracy.toStringAsFixed(1)} m',
+                      value: '${accuracy.toStringAsFixed(1)} m',
                       icon: Icons.my_location,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Speed',
-                      value: '${gpsData.speed.toStringAsFixed(1)} km/h',
+                      value: '${(gpsData?.speed ?? 0).toStringAsFixed(1)} km/h',
                       icon: Icons.speed,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Altitude',
-                      value: '${gpsData.altitude.toStringAsFixed(1)} m',
+                      value: '${(gpsData?.altitude ?? 0).toStringAsFixed(1)} m',
                       icon: Icons.height,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Heading',
-                      value: '${gpsData.heading.toStringAsFixed(1)}\u00B0',
+                      value: '${(gpsData?.heading ?? 0).toStringAsFixed(1)}\u00B0',
                       icon: Icons.explore,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Timestamp',
-                      value: gpsData.timestamp.toIso8601String(),
+                      value: (gpsData?.timestamp ?? DateTime.now()).toIso8601String(),
                       icon: Icons.access_time,
                     ),
                   ],
@@ -86,17 +87,17 @@ class GpsStatusScreen extends ConsumerWidget {
                     const Divider(),
                     StatTile(
                       label: 'Position Source',
-                      value: gpsData.accuracy < 10 ? 'GPS Fix' : 'Approximate',
+                      value: accuracy < 10 ? 'GPS Fix' : 'Approximate',
                       icon: Icons.satellite,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Fix Quality',
-                      value: gpsData.accuracy < 5
+                      value: accuracy < 5
                           ? 'Excellent'
-                          : gpsData.accuracy < 15
+                          : accuracy < 15
                               ? 'Good'
-                              : gpsData.accuracy < 30
+                              : accuracy < 30
                                   ? 'Fair'
                                   : 'Poor',
                       icon: Icons.signal_cellular_alt,
@@ -124,7 +125,7 @@ class GpsStatusScreen extends ConsumerWidget {
                 Text(
                   'SIGNAL STRENGTH',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 10,
                     letterSpacing: 1,
                   ),
@@ -151,7 +152,7 @@ class GpsStatusScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: index < bars
                       ? _getSignalColor(strength)
-                      : Colors.white.withOpacity(0.1),
+                      : Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

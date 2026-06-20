@@ -66,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'DASHBOARD',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 18,
                         letterSpacing: 8,
                         fontWeight: FontWeight.w300,
@@ -79,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          ThemeConstants.primaryColor.withOpacity(0.8),
+                          ThemeConstants.primaryColor.withValues(alpha: 0.8),
                         ),
                       ),
                     ),
@@ -100,12 +100,12 @@ class _SplashScreenState extends State<SplashScreen>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: ThemeConstants.primaryColor.withOpacity(0.5),
+          color: ThemeConstants.primaryColor.withValues(alpha: 0.5),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: ThemeConstants.primaryColor.withOpacity(0.3),
+            color: ThemeConstants.primaryColor.withValues(alpha: 0.3),
             blurRadius: 30,
             spreadRadius: 5,
           ),
@@ -117,20 +117,5 @@ class _SplashScreenState extends State<SplashScreen>
         size: 50,
       ),
     );
-  }
-}
-
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget Function(BuildContext context, Widget? child) builder;
-
-  const AnimatedBuilder({
-    super.key,
-    required super.listenable,
-    required this.builder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return builder(context, null);
   }
 }

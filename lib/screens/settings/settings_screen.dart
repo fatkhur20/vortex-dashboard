@@ -56,7 +56,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.white.withOpacity(0.6)),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
             ),
           ),
           TextButton(
@@ -113,7 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: Text(
               'MPH',
               style: TextStyle(
-                color: ThemeConstants.primaryColor.withOpacity(!useKmh ? 1 : 0.4),
+                color: ThemeConstants.primaryColor.withValues(alpha: !useKmh ? 1 : 0.4),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -146,7 +146,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Text(
                       'Refresh Rate',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -165,16 +165,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   'GPS location update interval',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
                   ),
                 ),
                 SliderTheme(
                   data: SliderThemeData(
                     activeTrackColor: ThemeConstants.primaryColor,
-                    inactiveTrackColor: ThemeConstants.primaryColor.withOpacity(0.2),
+                    inactiveTrackColor: ThemeConstants.primaryColor.withValues(alpha: 0.2),
                     thumbColor: ThemeConstants.primaryColor,
-                    overlayColor: ThemeConstants.primaryColor.withOpacity(0.1),
+                    overlayColor: ThemeConstants.primaryColor.withValues(alpha: 0.1),
                     trackHeight: 3,
                   ),
                   child: Slider(
@@ -206,7 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Text(
                             'Speed Alert',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -215,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Text(
                             'Notify when speed exceeds limit',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withValues(alpha: 0.5),
                               fontSize: 13,
                             ),
                           ),
@@ -238,7 +238,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         'Speed Limit',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 14,
                         ),
                       ),
@@ -255,9 +255,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   SliderTheme(
                     data: SliderThemeData(
                       activeTrackColor: ThemeConstants.primaryColor,
-                      inactiveTrackColor: ThemeConstants.primaryColor.withOpacity(0.2),
+                      inactiveTrackColor: ThemeConstants.primaryColor.withValues(alpha: 0.2),
                       thumbColor: ThemeConstants.primaryColor,
-                      overlayColor: ThemeConstants.primaryColor.withOpacity(0.1),
+                      overlayColor: ThemeConstants.primaryColor.withValues(alpha: 0.1),
                       trackHeight: 3,
                     ),
                     child: Slider(
@@ -315,7 +315,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   'Emergency Contact',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -324,7 +324,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   'This contact will be notified in case of emergency',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
                   ),
                 ),
@@ -335,10 +335,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   decoration: InputDecoration(
                     labelText: 'Contact Name',
                     labelStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
+                    fillColor: Colors.white.withValues(alpha: 0.05),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -346,12 +346,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: ThemeConstants.primaryColor.withOpacity(0.5),
+                        color: ThemeConstants.primaryColor.withValues(alpha: 0.5),
                       ),
                     ),
                     prefixIcon: Icon(
                       Icons.person,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       size: 20,
                     ),
                   ),
@@ -364,10 +364,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
                     labelStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
+                    fillColor: Colors.white.withValues(alpha: 0.05),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -375,12 +375,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: ThemeConstants.primaryColor.withOpacity(0.5),
+                        color: ThemeConstants.primaryColor.withValues(alpha: 0.5),
                       ),
                     ),
                     prefixIcon: Icon(
                       Icons.phone,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       size: 20,
                     ),
                   ),
@@ -399,7 +399,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             SnackBar(
                               content: const Text('Emergency contact saved'),
                               backgroundColor:
-                                  ThemeConstants.successColor.withOpacity(0.8),
+                                  ThemeConstants.successColor.withValues(alpha: 0.8),
                             ),
                           );
                         } else {
@@ -408,7 +408,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               content:
                                   const Text('Please fill in all fields'),
                               backgroundColor:
-                                  ThemeConstants.warningColor.withOpacity(0.8),
+                                  ThemeConstants.warningColor.withValues(alpha: 0.8),
                             ),
                           );
                         }
@@ -437,7 +437,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           _buildDataTile(
-            icon: Icons.download_file,
+            icon: Icons.download,
             title: 'Import Settings',
             subtitle: 'Restore configuration from a file',
             onTap: () {},
@@ -475,7 +475,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -484,7 +484,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
                   ),
                 ),
@@ -536,7 +536,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         title,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -545,7 +545,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 13,
                         ),
                       ),
@@ -554,7 +554,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   size: 20,
                 ),
               ],

@@ -19,8 +19,9 @@ class _AltimeterScreenState extends ConsumerState<AltimeterScreen> {
   Widget build(BuildContext context) {
     final altimeterState = ref.watch(altimeterStateProvider);
     final gpsData = ref.watch(gpsDataProvider);
+    final altitude = gpsData?.altitude ?? 0;
 
-    ref.read(altimeterStateProvider.notifier).updateAltitude(gpsData.altitude);
+    ref.read(altimeterStateProvider.notifier).updateAltitude(altitude);
 
     return Scaffold(
       appBar: AppBar(
@@ -33,7 +34,7 @@ class _AltimeterScreenState extends ConsumerState<AltimeterScreen> {
           child: Column(
             children: [
               AltimeterGauge(
-                altitude: gpsData.altitude,
+                altitude: altitude,
                 maxAltitude: altimeterState.maxAltitude,
                 minAltitude: altimeterState.minAltitude,
                 size: 220,
@@ -45,7 +46,7 @@ class _AltimeterScreenState extends ConsumerState<AltimeterScreen> {
                     child: GlassCard(
                       child: Column(
                         children: [
-                          _buildValue('CURRENT', gpsData.altitude, 'm'),
+                          _buildValue('CURRENT', altitude, 'm'),
                           const SizedBox(height: 8),
                           _buildLabel('Current Altitude'),
                         ],
@@ -107,19 +108,19 @@ class _AltimeterScreenState extends ConsumerState<AltimeterScreen> {
                   children: [
                     StatTile(
                       label: 'GPS Accuracy',
-                      value: '${gpsData.accuracy.toStringAsFixed(1)} m',
+                      value: '${(gpsData?.accuracy ?? 0).toStringAsFixed(1)} m',
                       icon: Icons.my_location,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Latitude',
-                      value: gpsData.latitude.toStringAsFixed(6),
+                      value: (gpsData?.latitude ?? 0).toStringAsFixed(6),
                       icon: Icons.public,
                     ),
                     const Divider(),
                     StatTile(
                       label: 'Longitude',
-                      value: gpsData.longitude.toStringAsFixed(6),
+                      value: (gpsData?.longitude ?? 0).toStringAsFixed(6),
                       icon: Icons.public,
                     ),
                   ],
@@ -163,7 +164,7 @@ class _AltimeterScreenState extends ConsumerState<AltimeterScreen> {
     return Text(
       text,
       style: TextStyle(
-        color: Colors.white.withOpacity(0.4),
+        color: Colors.white.withValues(alpha: 0.4),
         fontSize: 10,
         letterSpacing: 1,
       ),

@@ -13,34 +13,50 @@ final trackingStateProvider =
   return TrackingStateNotifier(ref);
 });
 
+final trackingIsActiveProvider = Provider<bool>((ref) {
+  return ref.watch(trackingStateProvider).isTracking;
+});
+
 class TrackingState {
   final bool isTracking;
   final RideModel? currentRide;
   final double maxSpeed;
+  final double avgSpeed;
   final double maxAltitude;
   final double totalDistance;
+  final List<dynamic> trackPoints;
+  final List<RideModel> rideHistory;
 
   TrackingState({
     this.isTracking = false,
     this.currentRide,
     this.maxSpeed = 0,
+    this.avgSpeed = 0,
     this.maxAltitude = 0,
     this.totalDistance = 0,
+    this.trackPoints = const [],
+    this.rideHistory = const [],
   });
 
   TrackingState copyWith({
     bool? isTracking,
     RideModel? currentRide,
     double? maxSpeed,
+    double? avgSpeed,
     double? maxAltitude,
     double? totalDistance,
+    List<dynamic>? trackPoints,
+    List<RideModel>? rideHistory,
   }) {
     return TrackingState(
       isTracking: isTracking ?? this.isTracking,
       currentRide: currentRide ?? this.currentRide,
       maxSpeed: maxSpeed ?? this.maxSpeed,
+      avgSpeed: avgSpeed ?? this.avgSpeed,
       maxAltitude: maxAltitude ?? this.maxAltitude,
       totalDistance: totalDistance ?? this.totalDistance,
+      trackPoints: trackPoints ?? this.trackPoints,
+      rideHistory: rideHistory ?? this.rideHistory,
     );
   }
 }
@@ -62,6 +78,7 @@ class TrackingStateNotifier extends StateNotifier<TrackingState> {
         maxSpeed: service.maxSpeed,
         maxAltitude: service.maxAltitude,
         totalDistance: service.totalDistance,
+        trackPoints: List.from(service.trackPoints),
       );
     });
   }
@@ -73,5 +90,9 @@ class TrackingStateNotifier extends StateNotifier<TrackingState> {
     state = TrackingState();
 
     return ride;
+  }
+
+  void loadHistory() {
+    final repo = _ref.read(trackingServiceProvider);
   }
 }

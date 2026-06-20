@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortex_dashboard/providers/gps_provider.dart';
+import 'package:vortex_dashboard/services/gps_service.dart';
+import 'package:vortex_dashboard/models/gps_data.dart';
 
 class PerformanceMetrics {
   final double currentSpeed;
@@ -49,7 +50,7 @@ final performanceProvider =
 
 class PerformanceNotifier extends StateNotifier<PerformanceMetrics> {
   final Ref _ref;
-  StreamSubscription? _speedSubscription;
+  StreamSubscription<GpsData>? _speedSubscription;
   DateTime? _rideStartTime;
   DateTime? _zeroToSixtyStart;
   DateTime? _zeroToHundredStart;
@@ -71,7 +72,9 @@ class PerformanceNotifier extends StateNotifier<PerformanceMetrics> {
     _quarterMileDistance = 0;
     _speedSamples.clear();
 
-    _speedSubscription = _ref.read(gpsDataProvider).listen((gpsData) {
+    final service = GpsService();
+    service.startListening();
+    _speedSubscription = service.gpsDataStream.listen((gpsData) {
       final speed = gpsData.speed;
       final now = DateTime.now();
 
@@ -88,7 +91,6 @@ class PerformanceNotifier extends StateNotifier<PerformanceMetrics> {
 
       final maxSpeed = state.maxSpeed > speed ? state.maxSpeed : speed;
 
-      // 0-60 timer
       if (!_zeroToSixtyRecorded && _lastSpeed < 60 && speed >= 60) {
         if (_zeroToSixtyStart != null) {
           final time = now.difference(_zeroToSixtyStart!).inMilliseconds / 1000.0;
@@ -100,7 +102,6 @@ class PerformanceNotifier extends StateNotifier<PerformanceMetrics> {
         _zeroToSixtyStart = now;
       }
 
-      // 0-100 timer
       if (!_zeroToHundredRecorded && _lastSpeed < 100 && speed >= 100) {
         if (_zeroToHundredStart != null) {
           final time = now.difference(_zeroToHundredStart!).inMilliseconds / 1000.0;
@@ -112,11 +113,10 @@ class PerformanceNotifier extends StateNotifier<PerformanceMetrics> {
         _zeroToHundredStart = now;
       }
 
-      // Quarter mile (402 meters) timer
       if (!_quarterMileRecorded) {
         if (speed > 0) {
           if (_quarterMileStart == null) _quarterMileStart = now;
-          _quarterMileDistance += speed * (1 / 3600); // approximate
+          _quarterMileDistance += speed * (1 / 3600);
           if (_quarterMileDistance >= 0.402) {
             final time = now.difference(_quarterMileStart!).inMilliseconds / 1000.0;
             state = state.copyWith(quarterMileTime: time);

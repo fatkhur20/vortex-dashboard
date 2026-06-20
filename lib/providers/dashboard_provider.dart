@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/services/gps_service.dart';
 import 'package:vortex_dashboard/services/storage_service.dart';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
-import 'package:vortex_dashboard/core/utils/helpers.dart';
 
 final dashboardDataProvider = Provider<DashboardData>((ref) {
   final gpsService = GpsService();
@@ -16,7 +15,6 @@ final dashboardDataProvider = Provider<DashboardData>((ref) {
     altitude: lastData?.altitude ?? 0,
     heading: lastData?.heading ?? 0,
     accuracy: lastData?.accuracy ?? 0,
-    satelliteCount: lastData?.satelliteCount,
     tripADistance: storage.getDouble(AppConstants.tripAKey, defaultValue: 0),
     tripBDistance: storage.getDouble(AppConstants.tripBKey, defaultValue: 0),
     odometerTotal: storage.getDouble(AppConstants.odometerKey, defaultValue: 0),
@@ -30,7 +28,6 @@ class DashboardData {
   final double altitude;
   final double heading;
   final double accuracy;
-  final int? satelliteCount;
   final double tripADistance;
   final double tripBDistance;
   final double odometerTotal;
@@ -42,14 +39,8 @@ class DashboardData {
     this.altitude = 0,
     this.heading = 0,
     this.accuracy = 0,
-    this.satelliteCount,
     this.tripADistance = 0,
     this.tripBDistance = 0,
     this.odometerTotal = 0,
   });
 }
-
-final speedColorProvider = Provider<String>((ref) {
-  final speed = ref.watch(dashboardDataProvider).currentSpeed;
-  return speed.speedColorHex;
-});

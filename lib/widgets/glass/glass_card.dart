@@ -15,7 +15,6 @@ class GlassCard extends StatelessWidget {
 
   const GlassCard({
     super.key,
-    required this.child,
     this.padding,
     this.height,
     this.width,
@@ -25,6 +24,7 @@ class GlassCard extends StatelessWidget {
     this.blur = 10,
     this.opacity = 0.1,
     this.margin,
+    required this.child,
   });
 
   factory GlassCard.neon({
@@ -38,9 +38,9 @@ class GlassCard extends StatelessWidget {
       borderRadius: borderRadius,
       padding: padding,
       margin: margin,
-      borderColor: ThemeConstants.neonBlue.withOpacity(0.3),
+      borderColor: ThemeConstants.neonBlue.withValues(alpha: 0.3),
       gradientColors: [
-        ThemeConstants.neonBlue.withOpacity(0.03),
+        ThemeConstants.neonBlue.withValues(alpha: 0.03),
         Colors.transparent,
       ],
     );
@@ -64,23 +64,23 @@ class GlassCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(opacity),
-                  Colors.white.withOpacity(opacity * 0.5),
+                  Colors.white.withValues(alpha: opacity),
+                  Colors.white.withValues(alpha: opacity * 0.5),
                 ],
               ),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor ?? Colors.white.withOpacity(0.12),
+          color: borderColor ?? Colors.white.withValues(alpha: 0.12),
           width: 0.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: ThemeConstants.primaryColor.withOpacity(0.05),
+            color: ThemeConstants.primaryColor.withValues(alpha: 0.05),
             blurRadius: blur,
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
             spreadRadius: 0,
             offset: const Offset(0, 5),

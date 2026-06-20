@@ -8,9 +8,28 @@ final compassServiceProvider = Provider<CompassService>((ref) {
   return service;
 });
 
-final compassHeadingProvider = StreamNotifierProvider<CompassHeadingNotifier, double>(
-  CompassHeadingNotifier.new,
-);
+final compassHeadingProvider = StateNotifierProvider<CompassHeadingNotifier, double>((ref) {
+  return CompassHeadingNotifier(ref);
+});
+
+class CompassHeadingNotifier extends StateNotifier<double> {
+  StreamSubscription? _sub;
+  final Ref _ref;
+
+  CompassHeadingNotifier(this._ref) : super(0) {
+    final service = _ref.read(compassServiceProvider);
+    service.startListening();
+    _sub = service.headingStream.listen((h) {
+      state = h;
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+}
 
 final compassDirectionProvider = Provider<String>((ref) {
   final heading = ref.watch(compassHeadingProvider);
@@ -20,16 +39,6 @@ final compassDirectionProvider = Provider<String>((ref) {
   return directions[index];
 });
 
-final compassCalibratedProvider = StateProvider<bool>((ref) {
-  final service = ref.watch(compassServiceProvider);
-  return service.isCalibrated;
+final compassCalibratedProvider = Provider<bool>((ref) {
+  return ref.watch(compassServiceProvider).isCalibrated;
 });
-
-class CompassHeadingNotifier extends StreamNotifier<double> {
-  @override
-  Stream<double> build() {
-    final service = ref.watch(compassServiceProvider);
-    service.startListening();
-    return service.headingStream;
-  }
-}

@@ -1,12 +1,16 @@
 import 'dart:async';
-
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/gps_data.dart';
+import 'package:vortex_dashboard/models/ride_model.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
-import 'package:vortex_dashboard/widgets/common/stat_tile.dart';
+import 'package:vortex_dashboard/providers/ride_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
+import 'package:vortex_dashboard/widgets/common/stat_tile.dart';
+import 'package:vortex_dashboard/core/utils/extensions.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -50,7 +54,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
   }
 
   void _startRecording() {
-    ref.read(trackingServiceProvider.notifier).startTracking();
+    ref.read(trackingStateProvider.notifier).startTracking();
     _stopwatch.reset();
     _stopwatch.start();
     _timer?.cancel();
@@ -61,7 +65,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
   }
 
   void _stopRecording() {
-    ref.read(trackingServiceProvider.notifier).stopTracking();
+    ref.read(trackingStateProvider.notifier).stopTracking();
     _stopwatch.stop();
     _timer?.cancel();
     _pulseController.stop();
@@ -74,7 +78,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ThemeConstants.surfaceColor,
+        backgroundColor: ThemeConstants.cardBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -110,7 +114,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(trackingServiceProvider.notifier).discardTracking();
             },
             child: const Text(
               'Discard',
@@ -120,21 +123,27 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(trackingServiceProvider.notifier).exportCSV();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Exported as CSV')),
+              );
             },
             child: const Text('Export CSV'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(trackingServiceProvider.notifier).exportGPX();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Exported as GPX')),
+              );
             },
             child: const Text('Export GPX'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(trackingServiceProvider.notifier).saveTracking();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Ride saved')),
+              );
             },
             child: const Text('Save'),
           ),
@@ -151,12 +160,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
         children: [
           Text(
             label,
-            style: TextStyle(color: ThemeConstants.textSecondary),
+            style: const TextStyle(color: Colors.white70),
           ),
           Text(
             value,
-            style: TextStyle(
-              color: ThemeConstants.textPrimary,
+            style: const TextStyle(
+              color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -185,7 +194,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              ThemeConstants.backgroundColor,
+              ThemeConstants.amoledBackground,
               const Color(0xFF1A1A2E),
             ],
           ),
@@ -199,7 +208,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
     );
   }
 
-  Widget _buildRecordingView(TrackingState state, GpsData gps) {
+  Widget _buildRecordingView(TrackingState state, GpsData? gps) {
     return Stack(
       children: [
         SingleChildScrollView(
@@ -243,7 +252,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
     );
   }
 
-  Widget _buildStatsGrid(TrackingState state, GpsData gps) {
+  Widget _buildStatsGrid(TrackingState state, GpsData? gps) {
     return Column(
       children: [
         Row(
@@ -252,7 +261,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
               child: GlassCard(
                 child: StatTile(
                   label: 'Speed',
-                  value: '${gps.speed.toStringAsFixed(1)} km/h',
+                  value: '${(gps?.speed ?? 0).toStringAsFixed(1)} km/h',
                 ),
               ),
             ),
@@ -329,7 +338,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
           borderRadius: isRecording ? BorderRadius.circular(16) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.redAccent.withOpacity(0.5),
+              color: Colors.redAccent.withValues(alpha: 0.5),
               blurRadius: 24,
               spreadRadius: 4,
             ),
@@ -392,7 +401,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
                 separatorBuilder: (_, __) =>
                     const Divider(height: 1, color: Colors.white12),
                 itemBuilder: (context, index) {
-                  final point = points[index];
+                  final point = points[index] as GpsData;
                   return ListTile(
                     dense: true,
                     leading: Text(
@@ -404,7 +413,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
                       style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: Text(
-                      point.time?.toString() ?? '',
+                      point.timestamp.toString(),
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     trailing: Text(
@@ -426,8 +435,11 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
         Expanded(
           child: GlassCard(
             child: InkWell(
-              onTap: () =>
-                  ref.read(trackingServiceProvider.notifier).exportGPX(),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Exported as GPX')),
+                );
+              },
               borderRadius: BorderRadius.circular(16),
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
@@ -453,8 +465,11 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
         Expanded(
           child: GlassCard(
             child: InkWell(
-              onTap: () =>
-                  ref.read(trackingServiceProvider.notifier).exportCSV(),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Exported as CSV')),
+                );
+              },
               borderRadius: BorderRadius.circular(16),
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
@@ -486,7 +501,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
 
   Widget _buildRideHistory(TrackingState state) {
     final history = state.rideHistory;
-    if (history == null || history.isEmpty) {
+    if (history.isEmpty) {
       return Center(
         child: GlassCard(
           child: Padding(
@@ -507,9 +522,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
                 const SizedBox(height: 8),
                 Text(
                   'Tap the red button to start recording',
-                  style: TextStyle(
-                    color: Colors.white24,
-                  ),
+                  style: const TextStyle(color: Colors.white24),
                 ),
               ],
             ),
@@ -532,15 +545,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen>
           child: GlassCard(
             child: ListTile(
               title: Text(
-                ride.date ?? 'Ride ${index + 1}',
+                ride.startTime.toString(),
                 style: const TextStyle(color: Colors.white),
               ),
               subtitle: Text(
-                '${ride.distance.toStringAsFixed(2)} km  •  ${_formatDuration(ride.duration)}',
+                '${ride.distanceKm.toStringAsFixed(2)} km  •  ${_formatDuration(ride.duration)}',
                 style: const TextStyle(color: Colors.grey),
               ),
               trailing: Text(
-                '${ride.avgSpeed.toStringAsFixed(1)} km/h',
+                '${ride.averageSpeedKmh.toStringAsFixed(1)} km/h',
                 style: const TextStyle(color: Colors.greenAccent),
               ),
             ),

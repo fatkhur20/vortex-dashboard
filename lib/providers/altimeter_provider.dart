@@ -1,11 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortex_dashboard/providers/gps_provider.dart';
 
-final altimeterProvider = Provider<AltimeterData>((ref) {
-  final gpsData = ref.watch(gpsDataProvider);
-  return AltimeterData(
-    currentAltitude: gpsData.altitude,
-  );
+final altimeterStateProvider =
+    StateNotifierProvider<AltimeterStateNotifier, AltimeterData>((ref) {
+  return AltimeterStateNotifier();
 });
 
 class AltimeterData {
@@ -36,15 +33,8 @@ class AltimeterData {
   }
 }
 
-final altimeterStateProvider =
-    StateNotifierProvider<AltimeterStateNotifier, AltimeterData>((ref) {
-  return AltimeterStateNotifier(ref);
-});
-
 class AltimeterStateNotifier extends StateNotifier<AltimeterData> {
-  final Ref _ref;
-
-  AltimeterStateNotifier(this._ref) : super(AltimeterData());
+  AltimeterStateNotifier() : super(AltimeterData());
 
   void updateAltitude(double altitude) {
     state = state.copyWith(

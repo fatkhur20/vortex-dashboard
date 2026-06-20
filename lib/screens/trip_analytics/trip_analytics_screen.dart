@@ -2,13 +2,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
-import 'package:vortex_dashboard/core/utils/extensions.dart';
-import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/altimeter_provider.dart';
-import 'package:vortex_dashboard/services/location_tracking_service.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 import 'package:vortex_dashboard/widgets/common/stat_tile.dart';
+import 'package:vortex_dashboard/core/utils/extensions.dart';
 
 class TripAnalyticsScreen extends ConsumerStatefulWidget {
   const TripAnalyticsScreen({super.key});
@@ -20,8 +18,6 @@ class TripAnalyticsScreen extends ConsumerStatefulWidget {
 class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
   final List<FlSpot> _speedSpots = [];
   final List<FlSpot> _altitudeSpots = [];
-  int _timeCounter = 0;
-  bool _isRecording = false;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +80,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
               Text(
                 'Max KM/H',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 10,
                 ),
               ),
@@ -105,7 +101,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
               Text(
                 'Total KM',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 10,
                 ),
               ),
@@ -126,7 +122,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
               Text(
                 'Duration',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 10,
                 ),
               ),
@@ -155,7 +151,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
               Text(
                 title,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 11,
                   letterSpacing: 1,
                   fontWeight: FontWeight.w600,
@@ -171,7 +167,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
                     child: Text(
                       'Start tracking to see chart',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 12,
                       ),
                     ),
@@ -184,7 +180,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
                         horizontalInterval: 50,
                         getDrawingHorizontalLine: (value) {
                           return FlLine(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             strokeWidth: 0.5,
                           );
                         },
@@ -198,7 +194,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
                               return Text(
                                 value.toStringAsFixed(0),
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   fontSize: 9,
                                 ),
                               );
@@ -214,7 +210,7 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
                               return Text(
                                 '${value.toInt()}s',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   fontSize: 9,
                                 ),
                               );
@@ -247,8 +243,8 @@ class _TripAnalyticsScreenState extends ConsumerState<TripAnalyticsScreen> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                color.withOpacity(0.3),
-                                color.withOpacity(0.0),
+                                color.withValues(alpha: 0.3),
+                                color.withValues(alpha: 0.0),
                               ],
                             ),
                           ),

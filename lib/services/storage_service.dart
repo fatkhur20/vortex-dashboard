@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
 import 'package:vortex_dashboard/models/ride_model.dart';
 import 'package:vortex_dashboard/models/trip_settings.dart';

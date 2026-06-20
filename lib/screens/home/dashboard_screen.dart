@@ -15,6 +15,7 @@ import 'package:vortex_dashboard/screens/map/map_screen.dart';
 import 'package:vortex_dashboard/screens/tracking/tracking_screen.dart';
 import 'package:vortex_dashboard/screens/performance/performance_screen.dart';
 import 'package:vortex_dashboard/screens/settings/settings_screen.dart';
+import 'package:vortex_dashboard/core/utils/extensions.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -86,7 +87,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final useKmh = ref.watch(useKmhProvider);
     final trackingState = ref.watch(trackingStateProvider);
     final dashboardData = ref.watch(dashboardDataProvider);
-    final speed = gpsData.speed;
+    final speed = gpsData?.speed ?? 0;
     final speedColor = speed.speedColor;
 
     return Scaffold(
@@ -106,11 +107,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 8),
                   _buildSpeedometer(speed, useKmh, speedColor),
                   const SizedBox(height: 16),
-                  _buildQuickStats(speed, gpsData.altitude, heading, gpsData.accuracy, useKmh),
+                  _buildQuickStats(
+                    speed,
+                    gpsData?.altitude ?? 0,
+                    heading,
+                    gpsData?.accuracy ?? 0,
+                    useKmh,
+                  ),
                   const SizedBox(height: 16),
-                  _buildTripSection(trackingState.totalDistance, dashboardData.tripADistance),
+                  _buildTripSection(
+                    trackingState.totalDistance,
+                    dashboardData.tripADistance,
+                  ),
                   const SizedBox(height: 12),
-                  _buildBottomInfo(gpsData.latitude, gpsData.longitude),
+                  _buildBottomInfo(gpsData?.latitude ?? 0, gpsData?.longitude ?? 0),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -136,8 +146,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               center: Alignment.topCenter,
               radius: 1.2,
               colors: [
-                color.withOpacity(0.06),
-                color.withOpacity(0.02),
+                color.withValues(alpha: 0.06),
+                color.withValues(alpha: 0.02),
                 Colors.transparent,
               ],
             ),
@@ -154,14 +164,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           Icon(
             Icons.speed,
-            color: ThemeConstants.primaryColor.withOpacity(0.6),
+            color: ThemeConstants.primaryColor.withValues(alpha: 0.6),
             size: 20,
           ),
           const SizedBox(width: 8),
           Text(
             'VORTEX',
             style: TextStyle(
-              color: ThemeConstants.primaryColor.withOpacity(0.6),
+              color: ThemeConstants.primaryColor.withValues(alpha: 0.6),
               fontSize: 14,
               fontWeight: FontWeight.w700,
               letterSpacing: 3,
@@ -171,7 +181,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Text(
             _timeString,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 16,
               fontWeight: FontWeight.w300,
               letterSpacing: 2,
@@ -190,14 +200,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Icon(
           Icons.battery_std,
-          color: ThemeConstants.successColor.withOpacity(0.8),
+          color: ThemeConstants.successColor.withValues(alpha: 0.8),
           size: 18,
         ),
         const SizedBox(width: 4),
         Text(
           '85%',
           style: TextStyle(
-            color: ThemeConstants.successColor.withOpacity(0.8),
+            color: ThemeConstants.successColor.withValues(alpha: 0.8),
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -216,7 +226,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickStats(double speed, double altitude, double heading, double accuracy, bool useKmh) {
+  Widget _buildQuickStats(
+    double speed,
+    double altitude,
+    double heading,
+    double accuracy,
+    bool useKmh,
+  ) {
     final unit = useKmh ? 'km/h' : 'mph';
     final displaySpeed = useKmh
         ? speed.toStringAsFixed(0)
@@ -317,13 +333,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: ThemeConstants.primaryColor.withOpacity(0.3),
+                      color: ThemeConstants.primaryColor.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
                   child: Icon(
                     Icons.route,
-                    color: ThemeConstants.primaryColor.withOpacity(0.7),
+                    color: ThemeConstants.primaryColor.withValues(alpha: 0.7),
                     size: 20,
                   ),
                 ),
@@ -335,7 +351,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         'DISTANCE',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
+                          color: Colors.white.withValues(alpha: 0.4),
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 1.5,
@@ -356,10 +372,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: ThemeConstants.primaryColor.withOpacity(0.1),
+                    color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: ThemeConstants.primaryColor.withOpacity(0.2),
+                      color: ThemeConstants.primaryColor.withValues(alpha: 0.2),
                       width: 0.5,
                     ),
                   ),
@@ -378,7 +394,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         'TRIP',
                         style: TextStyle(
-                          color: ThemeConstants.primaryColor.withOpacity(0.7),
+                          color: ThemeConstants.primaryColor.withValues(alpha: 0.7),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
@@ -406,7 +422,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             Icon(
               Icons.location_on,
-              color: ThemeConstants.primaryColor.withOpacity(0.6),
+              color: ThemeConstants.primaryColor.withValues(alpha: 0.6),
               size: 14,
             ),
             const SizedBox(width: 8),
@@ -414,7 +430,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: Text(
                 '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
@@ -426,10 +442,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               height: 6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: ThemeConstants.successColor.withOpacity(0.8),
+                color: ThemeConstants.successColor.withValues(alpha: 0.8),
                 boxShadow: [
                   BoxShadow(
-                    color: ThemeConstants.successColor.withOpacity(0.4),
+                    color: ThemeConstants.successColor.withValues(alpha: 0.4),
                     blurRadius: 4,
                   ),
                 ],
@@ -449,14 +465,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         height: 44,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           border: Border.all(
-            color: ThemeConstants.neonBlue.withOpacity(0.3),
+            color: ThemeConstants.neonBlue.withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: ThemeConstants.neonBlue.withOpacity(0.1),
+              color: ThemeConstants.neonBlue.withValues(alpha: 0.1),
               blurRadius: 8,
             ),
           ],
@@ -465,7 +481,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           angle: heading * 3.1415927 / 180,
           child: Icon(
             Icons.navigation,
-            color: ThemeConstants.neonBlue.withOpacity(0.8),
+            color: ThemeConstants.neonBlue.withValues(alpha: 0.8),
             size: 22,
           ),
         ),
@@ -479,7 +495,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         color: const Color(0xFF0D0D0D),
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             width: 0.5,
           ),
         ),
@@ -490,7 +506,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         selectedItemColor: ThemeConstants.primaryColor,
-        unselectedItemColor: Colors.white.withOpacity(0.3),
+        unselectedItemColor: Colors.white.withValues(alpha: 0.3),
         type: BottomNavigationBarType.fixed,
         selectedFontSize: 10,
         unselectedFontSize: 10,
@@ -519,14 +535,5 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
     );
-  }
-}
-
-extension on double {
-  Color get speedColor {
-    if (this < 60) return ThemeConstants.speedLow;
-    if (this < 100) return ThemeConstants.speedMedium;
-    if (this < 140) return ThemeConstants.speedHigh;
-    return ThemeConstants.speedCritical;
   }
 }

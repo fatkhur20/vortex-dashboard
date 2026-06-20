@@ -9,7 +9,6 @@ class GpsService {
 
   Position? _currentPosition;
   StreamSubscription<Position>? _positionSubscription;
-  int _updateIntervalMs = 1000;
   bool _isListening = false;
 
   final _gpsDataController = StreamController<GpsData>.broadcast();
@@ -21,7 +20,6 @@ class GpsService {
   bool get isListening => _isListening;
 
   void setUpdateInterval(int ms) {
-    _updateIntervalMs = ms;
     if (_isListening) {
       stopListening();
       startListening();
@@ -56,12 +54,14 @@ class GpsService {
     if (!hasPermission) return;
 
     _isListening = true;
+    
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.best,
+      distanceFilter: 0,
+    );
+    
     _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 0,
-        timeLimit: null,
-      ),
+      locationSettings: locationSettings,
     ).listen(
       (Position position) {
         _currentPosition = position;
@@ -115,12 +115,6 @@ class GpsService {
 
   Future<bool> isGpsEnabled() async {
     return await Geolocator.isLocationServiceEnabled();
-  }
-
-  Future<double> getDistanceBetweenPoints(
-    double lat1, double lon1, double lat2, double lon2,
-  ) async {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000;
   }
 
   void dispose() {

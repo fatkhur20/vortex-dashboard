@@ -19,14 +19,13 @@ final weatherProvider = FutureProvider.autoDispose<WeatherModel>((ref) async {
 });
 
 final weatherRefreshProvider = StateNotifierProvider<WeatherRefreshNotifier, int>((ref) {
-  return WeatherRefreshNotifier(ref);
+  return WeatherRefreshNotifier();
 });
 
 class WeatherRefreshNotifier extends StateNotifier<int> {
-  final Ref _ref;
   Timer? _timer;
 
-  WeatherRefreshNotifier(this._ref) : super(0);
+  WeatherRefreshNotifier() : super(0);
 
   void refresh() {
     state++;

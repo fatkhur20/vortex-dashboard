@@ -4,18 +4,12 @@ import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/widgets/compass/compass_widget.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
-import 'package:vortex_dashboard/services/compass_service.dart';
 
-class CompassScreen extends ConsumerStatefulWidget {
+class CompassScreen extends ConsumerWidget {
   const CompassScreen({super.key});
 
   @override
-  ConsumerState<CompassScreen> createState() => _CompassScreenState();
-}
-
-class _CompassScreenState extends ConsumerState<CompassScreen> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final heading = ref.watch(compassHeadingProvider);
     final direction = ref.watch(compassDirectionProvider);
 
@@ -85,7 +79,7 @@ class _CompassScreenState extends ConsumerState<CompassScreen> {
                   Text(
                     'HEADING',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       fontSize: 10,
                       letterSpacing: 1,
                     ),
@@ -111,7 +105,7 @@ class _CompassScreenState extends ConsumerState<CompassScreen> {
                   Text(
                     'CALIBRATION',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       fontSize: 10,
                       letterSpacing: 1,
                     ),
@@ -134,7 +128,7 @@ class _CompassScreenState extends ConsumerState<CompassScreen> {
                   Text(
                     'MAGNETIC',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       fontSize: 10,
                       letterSpacing: 1,
                     ),

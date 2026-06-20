@@ -1,4 +1,5 @@
 import 'package:vortex_dashboard/services/gps_service.dart';
+import 'dart:async';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
 
 class SpeedAlertService {

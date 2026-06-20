@@ -109,7 +109,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.4),
+            color: Colors.white.withValues(alpha: 0.4),
             fontSize: 10,
           ),
         ),
@@ -127,17 +127,17 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search rides...',
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
             border: InputBorder.none,
             icon: Icon(
               Icons.search,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: Icon(
                       Icons.clear,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                     onPressed: () {
                       _searchController.clear();
@@ -163,7 +163,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
           children: [
             Icon(
               Icons.route,
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               size: 64,
             ),
             const SizedBox(height: 16),
@@ -178,7 +178,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
             Text(
               'Start tracking to record your rides',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 12,
               ),
             ),
@@ -220,7 +220,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                 PopupMenuButton<String>(
                   icon: Icon(
                     Icons.more_vert,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     size: 18,
                   ),
                   onSelected: (value) async {
@@ -279,7 +279,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
             Text(
               timeStr,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 11,
               ),
             ),
@@ -325,7 +325,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.4),
+            color: Colors.white.withValues(alpha: 0.4),
             fontSize: 9,
           ),
         ),
