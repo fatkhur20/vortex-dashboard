@@ -24,21 +24,21 @@ jobs:
             home: Scaffold(appBar: AppBar(title: Text('Test')), body: Center(child: Text('Hello Docker'))),
           ));
           EOF
-          flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-docker-apk-release
-          path: test_docker/build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Build debug
-        run: |
-          cd test_docker
           flutter build apk --debug
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: test-docker-apk-debug
+          name: test-docker-debug
           path: test_docker/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Build release
+        run: |
+          cd test_docker
+          flutter build apk --release
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-docker-release
+          path: test_docker/build/app/outputs/flutter-apk/app-release.apk

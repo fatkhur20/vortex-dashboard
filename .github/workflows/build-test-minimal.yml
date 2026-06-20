@@ -29,8 +29,15 @@ jobs:
           cd test_minimal
           cat > lib/main.dart << 'EOF'
           import 'package:flutter/material.dart';
+          import 'dart:io';
+          import 'package:path_provider/path_provider.dart';
 
-          void main() {
+          void main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            try {
+              final dir = await getApplicationDocumentsDirectory();
+              await File('${dir.path}/test_debug.txt').writeAsString('1_started\n');
+            } catch (_) {}
             runApp(const MyApp());
           }
 
@@ -62,6 +69,7 @@ jobs:
       - name: Build Release APK
         run: |
           cd test_minimal
+          flutter pub add path_provider
           flutter build apk --release
 
       - name: Upload APK
