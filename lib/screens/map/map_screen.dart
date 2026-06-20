@@ -84,6 +84,19 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     return compassHeading;
   }
 
+  double? _lastRotation;
+
+  void _applyRotation(double heading) {
+    final target = _headingUp ? heading * 3.1415927 / 180 : 0;
+    if (_lastRotation == target) return;
+    _lastRotation = target;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_mapController.camera.rotation != target) {
+        _mapController.rotate(target);
+      }
+    });
+  }
+
   void _toggleFollow() {
     setState(() => _followUser = true);
     _centerOnUser();
@@ -110,6 +123,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
         ? LatLng(location['lat']!, location['lng']!)
         : _defaultCenter;
 
+    _applyRotation(heading);
+
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
@@ -125,7 +140,6 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
               ),
-              rotation: _headingUp ? heading * 3.1415927 / 180 : 0,
               onMapEvent: _onMapEvent,
             ),
             children: [
