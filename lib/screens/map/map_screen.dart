@@ -108,6 +108,18 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     });
   }
 
+  void _zoomIn() {
+    if (!_mapReady) return;
+    final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _effectiveMaxZoom);
+    _mapController.move(_mapController.camera.center, z);
+  }
+
+  void _zoomOut() {
+    if (!_mapReady) return;
+    final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _effectiveMaxZoom);
+    _mapController.move(_mapController.camera.center, z);
+  }
+
   Color _speedColor(double speed) {
     if (speed < 1) return Colors.white;
     if (speed < 40) return ThemeConstants.successColor;
@@ -334,21 +346,21 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   tooltip: 'Follow GPS',
                 ),
                 const SizedBox(height: 8),
-                _MapButton(
-                  icon: Icons.add,
-                  onPressed: _mapReady ? () {
-                    final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _effectiveMaxZoom);
-                    _mapController.move(_mapController.camera.center, z);
-                  },
+                  _MapButton(
+                    icon: Icons.add,
+                    onPressed: _mapReady ? _zoomIn : null,
+                    tooltip: 'Zoom In',
+                  ),
+                  const SizedBox(height: 8),
+                  _MapButton(
+                    icon: Icons.remove,
+                    onPressed: _mapReady ? _zoomOut : null,
                   tooltip: 'Zoom In',
                 ),
                 const SizedBox(height: 8),
-                _MapButton(
-                  icon: Icons.remove,
-                  onPressed: _mapReady ? () {
-                    final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _effectiveMaxZoom);
-                    _mapController.move(_mapController.camera.center, z);
-                  } : null,
+                  _MapButton(
+                    icon: Icons.remove,
+                    onPressed: _mapReady ? _zoomOut : null,
                   tooltip: 'Zoom Out',
                 ),
               ],
