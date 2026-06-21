@@ -280,6 +280,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               zoom: _initialZoom,
             ),
             mapOptions: MapOptions(
+              pixelRatio: 1.0,
               constrainMode: ConstrainMode.NONE,
               orientation: NorthOrientation.UPWARDS,
             ),
