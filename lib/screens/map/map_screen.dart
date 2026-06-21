@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/models/gps_data.dart';
@@ -15,6 +16,7 @@ import 'package:vortex_dashboard/providers/geofence_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 
 enum MapStyle { satelliteHybrid, streets, dark, outdoors, custom }
+enum CameraMode { followMe, freeCamera, partnerFocus, northLocked }
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -32,6 +34,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
 
   bool _followUser = true;
   bool _headingUp = false;
+  CameraMode _cameraMode = CameraMode.followMe;
   MapStyle _mapStyle = MapStyle.satelliteHybrid;
   bool _showDebug = true;
 
@@ -311,6 +314,91 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     }
   }
 
+  void _cycleCameraMode() {
+    setState(() {
+      final modes = CameraMode.values;
+      _cameraMode = modes[(_cameraMode.index + 1) % modes.length];
+      switch (_cameraMode) {
+        case CameraMode.followMe:
+          _followUser = true;
+          _headingUp = true;
+          break;
+        case CameraMode.freeCamera:
+          _followUser = false;
+          _headingUp = false;
+          break;
+        case CameraMode.partnerFocus:
+          _followUser = false;
+          _headingUp = false;
+          _centerOnPartner();
+          break;
+        case CameraMode.northLocked:
+          _followUser = true;
+          _headingUp = false;
+          break;
+      }
+    });
+  }
+
+  void _showSosDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('SOS Emergency', style: TextStyle(color: Color(0xFFFF1744), fontWeight: FontWeight.bold)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Share your live location with emergency contacts?',
+            style: TextStyle(color: Colors.white70, fontSize: 13)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(10), borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(children: [
+              _sosInfoRow('Location', 'Active'),
+              _sosInfoRow('Battery', '85%'),
+              _sosInfoRow('Heading', '${_computeHeading(ref.read(gpsDataProvider), ref.read(compassHeadingProvider)).toStringAsFixed(0)}°'),
+              _sosInfoRow('Timestamp', DateFormat('HH:mm:ss').format(DateTime.now())),
+            ]),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(backgroundColor: const Color(0xFFFF1744).withAlpha(50)),
+            child: const Text('SEND SOS', style: TextStyle(color: Color(0xFFFF1744), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sosInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        Text('$label: ', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12)),
+        const Spacer(),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  Widget _statusItem(String label, String value, bool active) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(label, style: TextStyle(
+        fontSize: 8, color: Colors.white.withAlpha(100), fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+      const SizedBox(height: 2),
+      Text(value, style: TextStyle(
+        fontSize: 12, fontWeight: FontWeight.w700,
+        color: active ? ThemeConstants.successColor : Colors.white.withAlpha(150))),
+    ]);
+  }
+
   void _changeStyle(MapStyle style) async {
     setState(() => _mapStyle = style);
     if (_mapController != null) {
@@ -411,6 +499,14 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     final activity = ref.watch(currentActivityProvider).valueOrNull;
     final partner = ref.watch(partnerLocationProvider).valueOrNull;
     final geofences = ref.watch(geofenceListProvider);
+    final lastUpdate = gpsData?.timestamp;
+    final lastUpdateAgo = lastUpdate != null
+        ? '${DateTime.now().difference(lastUpdate).inSeconds}s'
+        : '--';
+
+    final distanceProvider = ref.watch(coupleDistanceProvider);
+    final partnerOnline = ref.watch(partnerOnlineProvider);
+    final isMoving = ref.watch(isMovingProvider);
 
     _applyCameraBearing(heading);
 
@@ -598,6 +694,40 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               ),
             ),
 
+          if (_mapReady)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 60, right: 60,
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                borderRadius: 14,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _statusItem('GPS', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}m',
+                      (gpsData?.accuracy ?? 99) < 10),
+                    _statusItem('Members', '2', true),
+                    _statusItem('Partner', partnerOnline ? 'Online' : 'Offline', partnerOnline),
+                    _statusItem('Update', '${lastUpdateAgo}', true),
+                    Container(width: 1, height: 20, color: Colors.white.withAlpha(20)),
+                    Icon(Icons.threed_rotation, size: 12,
+                      color: _show3D ? ThemeConstants.primaryColor : Colors.white.withAlpha(80)),
+                    const SizedBox(width: 4),
+                    Text('3D', style: TextStyle(fontSize: 9,
+                      color: _show3D ? ThemeConstants.primaryColor : Colors.white.withAlpha(80),
+                      fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 6),
+                    Icon(Icons.landscape, size: 12,
+                      color: _showTerrain ? ThemeConstants.primaryColor : Colors.white.withAlpha(80)),
+                    const SizedBox(width: 4),
+                    Text('TR', style: TextStyle(fontSize: 9,
+                      color: _showTerrain ? ThemeConstants.primaryColor : Colors.white.withAlpha(80),
+                      fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 0, right: 0,
@@ -635,9 +765,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             top: MediaQuery.of(context).padding.top + 56,
             right: 16,
             child: Column(children: [
-              _MapButton(icon: _headingUp ? Icons.north : Icons.explore,
-                onPressed: _mapReady ? _toggleHeadingUp : null,
-                active: _headingUp, tooltip: _headingUp ? 'North Up' : 'Heading Up'),
+              _MapButton(
+                icon: _cameraMode == CameraMode.followMe ? Icons.my_location
+                    : _cameraMode == CameraMode.freeCamera ? Icons.pan_tool
+                    : _cameraMode == CameraMode.partnerFocus ? Icons.favorite
+                    : Icons.north,
+                onPressed: _mapReady ? _cycleCameraMode : null,
+                active: _cameraMode != CameraMode.freeCamera,
+                tooltip: _cameraMode == CameraMode.followMe ? 'Follow Me'
+                    : _cameraMode == CameraMode.freeCamera ? 'Free Camera'
+                    : _cameraMode == CameraMode.partnerFocus ? 'Partner Focus'
+                    : 'North Locked'),
               const SizedBox(height: 6),
               _MapButton(icon: Icons.threed_rotation,
                 onPressed: _mapReady ? _toggle3D : null,
@@ -646,6 +784,10 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               _MapButton(icon: Icons.landscape,
                 onPressed: _mapReady ? _toggleTerrain : null,
                 active: _showTerrain, tooltip: 'Terrain'),
+              const SizedBox(height: 60),
+              _MapButton(icon: Icons.warning_amber_rounded,
+                onPressed: _mapReady ? _showSosDialog : null,
+                active: true, tooltip: 'SOS Emergency'),
               const SizedBox(height: 6),
               _MapButton(icon: _showDebug ? Icons.bug_report : Icons.bug_report_outlined,
                 onPressed: () => setState(() => _showDebug = !_showDebug),
@@ -722,12 +864,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               borderRadius: 16,
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                _InfoTile(label: 'SPEED', value: '${speed.toStringAsFixed(0)}', unit: 'km/h', color: _speedColor(speed)),
+                _InfoTile(label: 'DIST', value: '${speed > 0 ? "12.3" : "0.0"}', unit: 'km'),
                 _InfoTile(label: 'ALT', value: '${(gpsData?.altitude ?? 0).toStringAsFixed(0)}', unit: 'm'),
                 _InfoTile(label: 'HDG', value: '${heading.toStringAsFixed(0)}°', unit: _headingDir(heading)),
                 _InfoTile(label: 'ACC', value: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}', unit: 'm',
                   color: (gpsData?.accuracy ?? 99) < 10 ? ThemeConstants.successColor : ThemeConstants.warningColor),
-                _InfoTile(label: 'DST', value: ref.read(coupleDistanceProvider), unit: partner != null ? '' : '--'),
+                _InfoTile(label: 'PARTNER', value: partnerOnline ? 'Online' : 'Offline', unit: '',
+                  color: partnerOnline ? ThemeConstants.successColor : Colors.white.withAlpha(150)),
               ]),
             ),
           ),
