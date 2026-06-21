@@ -25,7 +25,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   MapStyle _mapStyle = MapStyle.satelliteHybrid;
   bool _showDebug = true;
 
-  Offset? _userScreenPos;
+  double? _userScreenX;
+  double? _userScreenY;
   Timer? _screenPosTimer;
   double _currentZoom = 17.0;
 
@@ -33,7 +34,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const double _minZoom = 5.0;
   static const double _maxZoom = 22.0;
 
-  static const Position _defaultCenter = Position(106.8456, -6.2088);
+  // Jakarta default
+  static const double _defaultLat = -6.2088;
+  static const double _defaultLng = 106.8456;
 
   bool _programmaticMove = false;
 
@@ -46,11 +49,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MapStyle.dark:
         return 'mapbox://styles/mapbox/dark-v11';
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   @override
@@ -78,34 +76,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _lastFollowLat = 0;
   double _lastFollowLng = 0;
 
-  void _applyCameraBearing(double heading) async {
-    if (!_mapReady || _mapController == null) return;
-    final target = _headingUp ? heading : 0.0;
-    if (_lastBearing == target) return;
-    _lastBearing = target;
-    _programmaticMove = true;
-    try {
-      final cam = await _mapController!.getCameraState();
-      await _mapController!.setCamera(
-        CameraOptions(
-          center: cam.center,
-          zoom: cam.zoom,
-          bearing: target,
-        ),
-      );
-    } catch (_) {}
+  void _onCameraChanged(CameraChangedEventData data) {
+    if (!_programmaticMove && _followUser && mounted) {
+      setState(() => _followUser = false);
+    }
+    _programmaticMove = false;
+  }
+
+  void _onScroll(_) {
+    if (_followUser && mounted) {
+      setState(() => _followUser = false);
+    }
   }
 
   void _onMapCreated(MapboxMap mapboxMap) {
     _mapController = mapboxMap;
     setState(() => _mapReady = true);
     _startScreenPosUpdates();
-    mapboxMap.onCameraChange.listen((event) {
-      if (!_programmaticMove && _followUser && mounted) {
-        setState(() => _followUser = false);
-      }
-      _programmaticMove = false;
-    });
   }
 
   void _startScreenPosUpdates() {
@@ -114,14 +101,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final loc = ref.read(currentLocationProvider);
       if (loc['lat'] == 0 && loc['lng'] == 0) return;
       try {
-        final point = await _mapController!.toScreenLocation(
-          Point(coords: Position(loc['lng']!, loc['lat']!)),
+        final screen = await _mapController!.pixelForCoordinate(
+          Point(coordinates: Position(loc['lng']!, loc['lat']!)),
         );
-        final zoom = await _mapController!.getCameraState();
+        final cam = await _mapController!.getCameraState();
         if (mounted) {
           setState(() {
-            _userScreenPos = Offset(point.x.toDouble(), point.y.toDouble());
-            _currentZoom = zoom.zoom;
+            _userScreenX = screen.x;
+            _userScreenY = screen.y;
+            _currentZoom = cam.zoom;
           });
         }
         if (_followUser) {
@@ -151,9 +139,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     try {
       final cam = await _mapController!.getCameraState();
       _programmaticMove = true;
-      await _mapController!.easeTo(
+      await _mapController!.setCamera(
         CameraOptions(
-          center: Point(coords: Position(lng, lat)),
+          center: Point(coordinates: Position(lng, lat)),
           zoom: cam.zoom,
           bearing: _headingUp
               ? _computeHeading(
@@ -162,9 +150,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 )
               : 0,
         ),
-        MapAnimationOptions(duration: 300),
       );
-    } catch (_) {}
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
   }
 
   void _toggleHeadingUp() {
@@ -174,13 +164,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
   }
 
+  void _applyCameraBearing(double heading) async {
+    if (!_mapReady || _mapController == null) return;
+    final target = _headingUp ? heading : 0.0;
+    if (_lastBearing == target) return;
+    _lastBearing = target;
+    try {
+      final cam = await _mapController!.getCameraState();
+      _programmaticMove = true;
+      await _mapController!.setCamera(
+        CameraOptions(
+          center: cam.center,
+          zoom: cam.zoom,
+          bearing: target,
+        ),
+      );
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
+  }
+
   void _zoomIn() async {
     if (!_mapReady || _mapController == null) return;
     try {
       final cam = await _mapController!.getCameraState();
       final z = (cam.zoom + 1).clamp(_minZoom, _maxZoom);
       _programmaticMove = true;
-      await _mapController!.easeTo(
+      await _mapController!.flyTo(
         CameraOptions(
           center: cam.center,
           zoom: z,
@@ -188,7 +199,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ),
         MapAnimationOptions(duration: 200),
       );
-    } catch (_) {}
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
   }
 
   void _zoomOut() async {
@@ -197,7 +211,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final cam = await _mapController!.getCameraState();
       final z = (cam.zoom - 1).clamp(_minZoom, _maxZoom);
       _programmaticMove = true;
-      await _mapController!.easeTo(
+      await _mapController!.flyTo(
         CameraOptions(
           center: cam.center,
           zoom: z,
@@ -205,14 +219,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ),
         MapAnimationOptions(duration: 200),
       );
-    } catch (_) {}
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
   }
 
   void _changeStyle(MapStyle style) async {
     setState(() => _mapStyle = style);
     if (_mapController != null) {
       try {
-        await _mapController!.setStyleURI(_styleUri);
+        await _mapController!.loadStyleURI(_styleUri);
       } catch (_) {}
     }
   }
@@ -254,22 +271,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       body: Stack(
         children: [
           MapWidget(
-            styleUri: _styleUri,
-            mapOptions: MapOptions(
-              center: Point(coords: _defaultCenter),
+            cameraOptions: CameraOptions(
+              center: Point(coordinates: Position(_defaultLng, _defaultLat)),
               zoom: _initialZoom,
+            ),
+            mapOptions: MapOptions(
               minZoom: _minZoom,
               maxZoom: _maxZoom,
               constrainMode: ConstrainMode.NONE,
               orientation: NorthOrientation.UPWARDS,
             ),
+            styleUri: _styleUri,
             onMapCreated: _onMapCreated,
+            onCameraChangeListener: _onCameraChanged,
+            onScrollListener: _onScroll,
           ),
 
-          if (_mapReady && _userScreenPos != null)
+          if (_mapReady && _userScreenX != null && _userScreenY != null)
             Positioned(
-              left: _userScreenPos!.dx - 40,
-              top: _userScreenPos!.dy - 40,
+              left: _userScreenX! - 40,
+              top: _userScreenY! - 40,
               child: GestureDetector(
                 onTap: _toggleFollow,
                 child: AnimatedRotation(
@@ -333,11 +354,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-          // User info overlay
-          if (_mapReady && _userScreenPos != null)
+          if (_mapReady && _userScreenX != null && _userScreenY != null)
             Positioned(
-              left: _userScreenPos!.dx - 40,
-              top: _userScreenPos!.dy + 24,
+              left: _userScreenX! - 40,
+              top: _userScreenY! + 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
