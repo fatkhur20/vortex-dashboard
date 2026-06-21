@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/models/geofence.dart';
+import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/services/geofence_service.dart';
 
 final geofenceServiceProvider = Provider<GeofenceService>((ref) {
@@ -43,12 +44,5 @@ class GeofenceListNotifier extends StateNotifier<List<Geofence>> {
 }
 
 final geofenceEventsProvider = StreamProvider<GeofenceEvent>((ref) {
-  return _ref.read(geofenceServiceProvider).eventStream;
-});
-
-final geofenceCheckProvider = Provider<void>((ref) {
-  ref.listen(currentLocationProvider, (prev, next) {
-    ref.read(geofenceServiceProvider).checkGeofences(next['lat']!, next['lng']!);
-  });
-  return;
+  return ref.read(geofenceServiceProvider).eventStream;
 });

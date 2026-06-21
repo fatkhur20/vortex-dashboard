@@ -67,7 +67,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   AnimationController? _partnerPulseController;
   AnimationController? _glowController;
 
-  static const List<String> _styleUris = {
+  static const Map<MapStyle, String> _styleUris = {
     MapStyle.satelliteHybrid: 'mapbox://styles/mapbox/satellite-streets-v12',
     MapStyle.streets: 'mapbox://styles/mapbox/streets-v12',
     MapStyle.dark: 'mapbox://styles/mapbox/dark-v11',
@@ -489,7 +489,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   border: Border.all(color: ThemeConstants.primaryColor.withAlpha(75), width: 0.5),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(activity?.activity.icon ?? '📍',
+                  Text(activity?.activityIcon ?? '\u{1F4CD}',
                     style: const TextStyle(fontSize: 11)),
                   const SizedBox(width: 4),
                   Text('${speed.toStringAsFixed(0)} km/h',
@@ -578,7 +578,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   _dbgRow('Source', _headingSourceLabel(speed, gpsH, compassHeading)),
                   _dbgRow('Speed', '${speed.toStringAsFixed(1)} km/h'),
                   _dbgRow('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
-                  _dbgRow('Activity', activity?.activity.label ?? '---'),
+                  _dbgRow('Activity', activity?.activityLabel ?? '---'),
                   _dbgRow('Partner', partner?.isOnline == true ? 'Online' : 'Offline'),
                   _dbgRow('3D', _show3D ? 'ON' : 'OFF'),
                   _dbgRow('Style', _mapStyle.name),

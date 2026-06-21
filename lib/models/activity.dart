@@ -41,6 +41,19 @@ class ActivityData {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
+  String get activityIcon {
+    switch (activity) {
+      case UserActivity.stationary: return '\u{1F4CD}';
+      case UserActivity.walking: return '\u{1F6B6}';
+      case UserActivity.running: return '\u{1F3C3}';
+      case UserActivity.cycling: return '\u{1F6B4}';
+      case UserActivity.driving: return '\u{1F697}';
+      case UserActivity.unknown: return '\u{2753}';
+    }
+  }
+
+  String get activityLabel => activity.label;
+
   static UserActivity detectFromSpeed(double speedKmh) {
     if (speedKmh < 0.5) return UserActivity.stationary;
     if (speedKmh < 6) return UserActivity.walking;

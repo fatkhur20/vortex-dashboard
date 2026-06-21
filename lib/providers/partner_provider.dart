@@ -12,8 +12,7 @@ final coupleTrackingServiceProvider = Provider<CoupleTrackingService>((ref) {
 
 final partnerLocationProvider = StreamProvider<PartnerLocation?>((ref) {
   final service = ref.watch(coupleTrackingServiceProvider);
-  final loc = service.lastPartnerLocation;
-  return service.partnerLocationStream.map((e) => e).startWith(loc);
+  return service.partnerLocationStream.map((e) => e);
 });
 
 final coupleDataProvider = StreamProvider<CoupleData>((ref) {
