@@ -91,6 +91,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _onMapCreated(MapboxMap mapboxMap) {
     _mapController = mapboxMap;
+    mapboxMap.setBounds(CameraBoundsOptions(
+      minZoom: _minZoom,
+      maxZoom: _maxZoom,
+    ));
     setState(() => _mapReady = true);
     _startScreenPosUpdates();
   }
@@ -276,8 +280,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               zoom: _initialZoom,
             ),
             mapOptions: MapOptions(
-              minZoom: _minZoom,
-              maxZoom: _maxZoom,
               constrainMode: ConstrainMode.NONE,
               orientation: NorthOrientation.UPWARDS,
             ),
