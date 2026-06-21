@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 
-enum MapMode { hybrid, light, dark }
+enum MapStyle { satelliteHybrid, streets, dark }
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -18,22 +17,36 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateMixin {
-  final MapController _mapController = MapController();
+class _MapScreenState extends ConsumerState<MapScreen> {
+  MapboxMap? _mapController;
+  bool _mapReady = false;
   bool _followUser = true;
   bool _headingUp = false;
-  MapMode _mapMode = MapMode.light;
+  MapStyle _mapStyle = MapStyle.satelliteHybrid;
   bool _showDebug = true;
-  bool _mapReady = false;
+
+  Offset? _userScreenPos;
+  Timer? _screenPosTimer;
+  double _currentZoom = 17.0;
 
   static const double _initialZoom = 17.0;
   static const double _minZoom = 5.0;
-  static const double _maxZoom = 19.0;
-  static const double _hybridMaxZoom = 18.0;
+  static const double _maxZoom = 22.0;
 
-  double get _effectiveMaxZoom => _mapMode == MapMode.hybrid ? _hybridMaxZoom : _maxZoom;
+  static const Position _defaultCenter = Position(106.8456, -6.2088);
 
-  static const LatLng _defaultCenter = LatLng(-6.2088, 106.8456);
+  bool _programmaticMove = false;
+
+  String get _styleUri {
+    switch (_mapStyle) {
+      case MapStyle.satelliteHybrid:
+        return 'mapbox://styles/mapbox/satellite-streets-v12';
+      case MapStyle.streets:
+        return 'mapbox://styles/mapbox/streets-v12';
+      case MapStyle.dark:
+        return 'mapbox://styles/mapbox/dark-v11';
+    }
+  }
 
   @override
   void initState() {
@@ -42,18 +55,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
 
   @override
   void dispose() {
-    _mapController.dispose();
+    _screenPosTimer?.cancel();
     super.dispose();
-  }
-
-  void _onMapReady() {
-    setState(() => _mapReady = true);
-  }
-
-  void _onMapEvent(MapEvent event) {
-    if (event is MapEventMoveEnd && _followUser) {
-      setState(() => _followUser = false);
-    }
   }
 
   double _computeHeading(GpsData? gpsData, double compassHeading) {
@@ -71,53 +74,147 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     return 0;
   }
 
-  double? _lastRotation;
+  double? _lastBearing;
+  double _lastFollowLat = 0;
+  double _lastFollowLng = 0;
 
-  void _applyRotation(double heading) {
-    if (!_mapReady) return;
-    const double _deg2rad = 3.141592653589793 / 180.0;
-    final target = _headingUp ? heading * _deg2rad : 0.0;
-    if (_lastRotation == target) return;
-    _lastRotation = target;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_mapReady) return;
-      if (_mapController.camera.rotation != target) {
-        _mapController.rotate(target);
+  void _applyCameraBearing(double heading) async {
+    if (!_mapReady || _mapController == null) return;
+    final target = _headingUp ? heading : 0.0;
+    if (_lastBearing == target) return;
+    _lastBearing = target;
+    _programmaticMove = true;
+    try {
+      final cam = await _mapController!.getCameraState();
+      await _mapController!.setCamera(
+        CameraOptions(
+          center: cam.center,
+          zoom: cam.zoom,
+          bearing: target,
+        ),
+      );
+    } catch (_) {}
+  }
+
+  void _onMapCreated(MapboxMap mapboxMap) {
+    _mapController = mapboxMap;
+    setState(() => _mapReady = true);
+    _startScreenPosUpdates();
+    mapboxMap.onCameraChange.listen((event) {
+      if (!_programmaticMove && _followUser && mounted) {
+        setState(() => _followUser = false);
       }
+      _programmaticMove = false;
+    });
+  }
+
+  void _startScreenPosUpdates() {
+    _screenPosTimer = Timer.periodic(const Duration(milliseconds: 100), (_) async {
+      if (!_mapReady || _mapController == null || !mounted) return;
+      final loc = ref.read(currentLocationProvider);
+      if (loc['lat'] == 0 && loc['lng'] == 0) return;
+      try {
+        final point = await _mapController!.toScreenLocation(
+          Point(coords: Position(loc['lng']!, loc['lat']!)),
+        );
+        final zoom = await _mapController!.getCameraState();
+        if (mounted) {
+          setState(() {
+            _userScreenPos = Offset(point.x.toDouble(), point.y.toDouble());
+            _currentZoom = zoom.zoom;
+          });
+        }
+        if (_followUser) {
+          final lat = loc['lat']!;
+          final lng = loc['lng']!;
+          if (lat != _lastFollowLat || lng != _lastFollowLng) {
+            _lastFollowLat = lat;
+            _lastFollowLng = lng;
+            _followToUser(lat, lng);
+          }
+        }
+      } catch (_) {}
     });
   }
 
   void _toggleFollow() {
     if (!_mapReady) return;
-    setState(() => _followUser = true);
-    _followToUser();
+    setState(() {
+      _followUser = true;
+      _lastFollowLat = 0;
+      _lastFollowLng = 0;
+    });
   }
 
-  void _followToUser() {
-    if (!_mapReady) return;
-    final loc = ref.read(currentLocationProvider);
-    if (loc['lat'] == 0 && loc['lng'] == 0) return;
-    final pos = LatLng(loc['lat']!, loc['lng']!);
-    _mapController.move(pos, _mapController.camera.zoom);
+  void _followToUser(double lat, double lng) async {
+    if (!_mapReady || _mapController == null) return;
+    try {
+      final cam = await _mapController!.getCameraState();
+      _programmaticMove = true;
+      await _mapController!.easeTo(
+        CameraOptions(
+          center: Point(coords: Position(lng, lat)),
+          zoom: cam.zoom,
+          bearing: _headingUp
+              ? _computeHeading(
+                  ref.read(gpsDataProvider),
+                  ref.read(compassHeadingProvider),
+                )
+              : 0,
+        ),
+        MapAnimationOptions(duration: 300),
+      );
+    } catch (_) {}
   }
 
   void _toggleHeadingUp() {
     setState(() {
       _headingUp = !_headingUp;
-      _lastRotation = null;
+      _lastBearing = null;
     });
   }
 
-  void _zoomIn() {
-    if (!_mapReady) return;
-    final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _effectiveMaxZoom);
-    _mapController.move(_mapController.camera.center, z);
+  void _zoomIn() async {
+    if (!_mapReady || _mapController == null) return;
+    try {
+      final cam = await _mapController!.getCameraState();
+      final z = (cam.zoom + 1).clamp(_minZoom, _maxZoom);
+      _programmaticMove = true;
+      await _mapController!.easeTo(
+        CameraOptions(
+          center: cam.center,
+          zoom: z,
+          bearing: cam.bearing,
+        ),
+        MapAnimationOptions(duration: 200),
+      );
+    } catch (_) {}
   }
 
-  void _zoomOut() {
-    if (!_mapReady) return;
-    final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _effectiveMaxZoom);
-    _mapController.move(_mapController.camera.center, z);
+  void _zoomOut() async {
+    if (!_mapReady || _mapController == null) return;
+    try {
+      final cam = await _mapController!.getCameraState();
+      final z = (cam.zoom - 1).clamp(_minZoom, _maxZoom);
+      _programmaticMove = true;
+      await _mapController!.easeTo(
+        CameraOptions(
+          center: cam.center,
+          zoom: z,
+          bearing: cam.bearing,
+        ),
+        MapAnimationOptions(duration: 200),
+      );
+    } catch (_) {}
+  }
+
+  void _changeStyle(MapStyle style) async {
+    setState(() => _mapStyle = style);
+    if (_mapController != null) {
+      try {
+        await _mapController!.setStyleURI(_styleUri);
+      } catch (_) {}
+    }
   }
 
   Color _speedColor(double speed) {
@@ -149,114 +246,118 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     final speed = gpsData?.speed ?? 0;
     final gpsH = gpsData?.heading ?? -1;
 
-    final currentPos = (location['lat'] != 0 && location['lng'] != 0)
-        ? LatLng(location['lat']!, location['lng']!)
-        : _defaultCenter;
-
-    _applyRotation(heading);
+    _applyCameraBearing(heading);
 
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _defaultCenter,
-              initialZoom: _initialZoom,
+          MapWidget(
+            styleUri: _styleUri,
+            mapOptions: MapOptions(
+              center: Point(coords: _defaultCenter),
+              zoom: _initialZoom,
               minZoom: _minZoom,
-              maxZoom: _effectiveMaxZoom,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all,
-              ),
-              onMapEvent: _onMapEvent,
-              onMapReady: _onMapReady,
+              maxZoom: _maxZoom,
+              constrainMode: ConstrainMode.NONE,
+              orientation: NorthOrientation.UPWARDS,
             ),
-            children: [
-              TileLayer(
-                urlTemplate: _mapMode == MapMode.hybrid
-                    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                    : _mapMode == MapMode.dark
-                        ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-                        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.vortex.app',
-                errorTileCallback: (tile, error, stackTrace) {
-                  debugPrint('Map tile error: $tile - $error');
-                },
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: currentPos,
+            onMapCreated: _onMapCreated,
+          ),
+
+          if (_mapReady && _userScreenPos != null)
+            Positioned(
+              left: _userScreenPos!.dx - 40,
+              top: _userScreenPos!.dy - 40,
+              child: GestureDetector(
+                onTap: _toggleFollow,
+                child: AnimatedRotation(
+                  turns: heading / 360,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: SizedBox(
                     width: 80,
                     height: 80,
-                    child: GestureDetector(
-                      onTap: _toggleFollow,
-                      child: AnimatedRotation(
-                        turns: heading / 360,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        child: SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.transparent,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: ThemeConstants.primaryColor.withValues(alpha: 0.4),
-                                      blurRadius: 20,
-                                      spreadRadius: 4,
-                                    ),
-                                    BoxShadow(
-                                      color: ThemeConstants.primaryColor.withValues(alpha: 0.2),
-                                      blurRadius: 40,
-                                      spreadRadius: 8,
-                                    ),
-                                  ],
-                                ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.transparent,
+                            boxShadow: [
+                              BoxShadow(
+                                color: ThemeConstants.primaryColor.withValues(alpha: 0.4),
+                                blurRadius: 20,
+                                spreadRadius: 4,
                               ),
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      ThemeConstants.primaryColor.withValues(alpha: 0.6),
-                                      ThemeConstants.primaryColor.withValues(alpha: 0.0),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                Icons.navigation,
-                                color: Colors.white,
-                                size: 28,
-                                shadows: [
-                                  Shadow(
-                                    color: ThemeConstants.primaryColor.withValues(alpha: 0.8),
-                                    blurRadius: 8,
-                                  ),
-                                ],
+                              BoxShadow(
+                                color: ThemeConstants.primaryColor.withValues(alpha: 0.2),
+                                blurRadius: 40,
+                                spreadRadius: 8,
                               ),
                             ],
                           ),
                         ),
-                      ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                ThemeConstants.primaryColor.withValues(alpha: 0.6),
+                                ThemeConstants.primaryColor.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.navigation,
+                          color: Colors.white,
+                          size: 28,
+                          shadows: [
+                            Shadow(
+                              color: ThemeConstants.primaryColor.withValues(alpha: 0.8),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
+            ),
+
+          // User info overlay
+          if (_mapReady && _userScreenPos != null)
+            Positioned(
+              left: _userScreenPos!.dx - 40,
+              top: _userScreenPos!.dy + 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: ThemeConstants.primaryColor.withValues(alpha: 0.3),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  '${speed.toStringAsFixed(0)} km/h',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _speedColor(speed),
+                  ),
+                ),
+              ),
+            ),
 
           if (_showDebug)
             Positioned(
@@ -270,7 +371,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _dbgRow('Ready', _mapReady ? 'YES' : 'NO'),
-                    _dbgRow('Zoom', _mapReady ? '${(_mapController.camera.zoom).toStringAsFixed(1)}' : '---'),
+                    _dbgRow('Zoom', _mapReady ? '${_currentZoom.toStringAsFixed(1)}' : '---'),
                     _dbgRow('GPS H.', '${gpsH >= 0 ? "${gpsH.toStringAsFixed(0)}°" : "---"}'),
                     _dbgRow('Compass', '${compassHeading.toStringAsFixed(0)}°'),
                     _dbgRow('Active', '${heading.toStringAsFixed(0)}° ${_headingDir(heading)}'),
@@ -278,7 +379,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     _dbgRow('Speed', '${speed.toStringAsFixed(1)} km/h'),
                     _dbgRow('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
                     _dbgRow('Rotate', _headingUp ? 'Heading Up' : 'North Up'),
-                    _dbgRow('Mode', _mapMode.name.toUpperCase()),
+                    _dbgRow('Style', _mapStyle.name),
                   ],
                 ),
               ),
@@ -292,25 +393,25 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _MapModeChip(
+                  _MapStyleChip(
                     label: 'Hybrid',
                     icon: Icons.satellite_alt,
-                    active: _mapMode == MapMode.hybrid,
-                    onTap: () => setState(() => _mapMode = MapMode.hybrid),
+                    active: _mapStyle == MapStyle.satelliteHybrid,
+                    onTap: () => _changeStyle(MapStyle.satelliteHybrid),
                   ),
                   const SizedBox(width: 6),
-                  _MapModeChip(
+                  _MapStyleChip(
                     label: 'Light',
                     icon: Icons.light_mode,
-                    active: _mapMode == MapMode.light,
-                    onTap: () => setState(() => _mapMode = MapMode.light),
+                    active: _mapStyle == MapStyle.streets,
+                    onTap: () => _changeStyle(MapStyle.streets),
                   ),
                   const SizedBox(width: 6),
-                  _MapModeChip(
+                  _MapStyleChip(
                     label: 'Dark',
                     icon: Icons.dark_mode,
-                    active: _mapMode == MapMode.dark,
-                    onTap: () => setState(() => _mapMode = MapMode.dark),
+                    active: _mapStyle == MapStyle.dark,
+                    onTap: () => _changeStyle(MapStyle.dark),
                   ),
                   const Spacer(),
                   _MapButton(
@@ -343,21 +444,15 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   tooltip: 'Follow GPS',
                 ),
                 const SizedBox(height: 8),
-                  _MapButton(
-                    icon: Icons.add,
-                    onPressed: _mapReady ? _zoomIn : null,
-                    tooltip: 'Zoom In',
-                  ),
-                  const SizedBox(height: 8),
-                  _MapButton(
-                    icon: Icons.remove,
-                    onPressed: _mapReady ? _zoomOut : null,
+                _MapButton(
+                  icon: Icons.add,
+                  onPressed: _mapReady ? _zoomIn : null,
                   tooltip: 'Zoom In',
                 ),
                 const SizedBox(height: 8),
-                  _MapButton(
-                    icon: Icons.remove,
-                    onPressed: _mapReady ? _zoomOut : null,
+                _MapButton(
+                  icon: Icons.remove,
+                  onPressed: _mapReady ? _zoomOut : null,
                   tooltip: 'Zoom Out',
                 ),
               ],
@@ -450,13 +545,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   }
 }
 
-class _MapModeChip extends StatelessWidget {
+class _MapStyleChip extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool active;
   final VoidCallback onTap;
 
-  const _MapModeChip({
+  const _MapStyleChip({
     required this.label,
     required this.icon,
     required this.active,

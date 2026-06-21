@@ -12,7 +12,7 @@ dependencies:
   flutter_riverpod:
   riverpod_annotation:
   geolocator:
-  flutter_map:
+  mapbox_maps_flutter:
 
   hive:
   hive_flutter:
@@ -25,7 +25,6 @@ dependencies:
   path_provider:
   sensors_plus:
   geocoding:
-  latlong2:
   equatable:
   freezed_annotation:
   json_annotation:
