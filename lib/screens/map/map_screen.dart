@@ -96,21 +96,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _onMapCreated(MapboxMap mapboxMap) {
     _mapReadyTimeout?.cancel();
     _mapController = mapboxMap;
-    mapboxMap.onStyleLoaded.listen((event) {
-      debugPrint('[MapScreen] Style loaded');
-    });
-    mapboxMap.onMapLoadingError.listen((event) {
-      debugPrint('[MapScreen] Map loading error: ${event.message}');
-    });
-    mapboxMap.onMapLoadError.listen((event) {
-      debugPrint('[MapScreen] Map load error: ${event.type} ${event.message}');
-      if (mounted) {
-        setState(() {
-          _mapError = true;
-          _mapErrorMessage = event.message ?? 'Unknown map load error';
-        });
-      }
-    });
+    debugPrint('[MapScreen] Map created');
     mapboxMap.setBounds(CameraBoundsOptions(
       minZoom: _minZoom,
       maxZoom: _maxZoom,
