@@ -44,8 +44,6 @@ jobs:
           find /github/home/.pub-cache -path '*/flutter_plugin_android_lifecycle*/android/build.gradle' -exec sed -i 's/compileSdk [0-9][0-9]*/compileSdk 36/' {} + 2>/dev/null || true
 
       - name: Generate launcher icons
-
-      - name: Generate launcher icons
         run: cd fresh && dart run flutter_launcher_icons
 
       - name: Generate code (Hive)
