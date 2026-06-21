@@ -24,6 +24,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   bool _headingUp = false;
   MapMode _mapMode = MapMode.light;
   bool _showDebug = true;
+  bool _mapReady = false;
 
   static const double _initialZoom = 17.0;
   static const double _minZoom = 5.0;
@@ -40,6 +41,10 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   void dispose() {
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _onMapReady() {
+    setState(() => _mapReady = true);
   }
 
   void _onMapEvent(MapEvent event) {
@@ -66,11 +71,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   double? _lastRotation;
 
   void _applyRotation(double heading) {
+    if (!_mapReady) return;
     const double _deg2rad = 3.141592653589793 / 180.0;
     final target = _headingUp ? heading * _deg2rad : 0.0;
     if (_lastRotation == target) return;
     _lastRotation = target;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_mapReady) return;
       if (_mapController.camera.rotation != target) {
         _mapController.rotate(target);
       }
@@ -78,11 +85,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   }
 
   void _toggleFollow() {
+    if (!_mapReady) return;
     setState(() => _followUser = true);
     _followToUser();
   }
 
   void _followToUser() {
+    if (!_mapReady) return;
     final loc = ref.read(currentLocationProvider);
     if (loc['lat'] == 0 && loc['lng'] == 0) return;
     final pos = LatLng(loc['lat']!, loc['lng']!);
@@ -147,6 +156,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                 flags: InteractiveFlag.all,
               ),
               onMapEvent: _onMapEvent,
+              onMapReady: _onMapReady,
             ),
             children: [
               TileLayer(
@@ -247,7 +257,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _dbgRow('Zoom', '${(_mapController.camera.zoom).toStringAsFixed(1)}'),
+                    _dbgRow('Ready', _mapReady ? 'YES' : 'NO'),
+                    _dbgRow('Zoom', _mapReady ? '${(_mapController.camera.zoom).toStringAsFixed(1)}' : '---'),
                     _dbgRow('GPS H.', '${gpsH >= 0 ? "${gpsH.toStringAsFixed(0)}°" : "---"}'),
                     _dbgRow('Compass', '${compassHeading.toStringAsFixed(0)}°'),
                     _dbgRow('Active', '${heading.toStringAsFixed(0)}° ${_headingDir(heading)}'),
@@ -292,7 +303,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   const Spacer(),
                   _MapButton(
                     icon: _headingUp ? Icons.north : Icons.explore,
-                    onPressed: _toggleHeadingUp,
+                    onPressed: _mapReady ? _toggleHeadingUp : null,
                     active: _headingUp,
                     tooltip: _headingUp ? 'North Up' : 'Heading Up',
                   ),
@@ -315,26 +326,26 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               children: [
                 _MapButton(
                   icon: _followUser ? Icons.my_location : Icons.location_disabled,
-                  onPressed: _toggleFollow,
+                  onPressed: _mapReady ? _toggleFollow : null,
                   active: _followUser,
                   tooltip: 'Follow GPS',
                 ),
                 const SizedBox(height: 8),
                 _MapButton(
                   icon: Icons.add,
-                  onPressed: () {
+                  onPressed: _mapReady ? () {
                     final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _maxZoom);
                     _mapController.move(_mapController.camera.center, z);
-                  },
+                  } : null,
                   tooltip: 'Zoom In',
                 ),
                 const SizedBox(height: 8),
                 _MapButton(
                   icon: Icons.remove,
-                  onPressed: () {
+                  onPressed: _mapReady ? () {
                     final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _maxZoom);
                     _mapController.move(_mapController.camera.center, z);
-                  },
+                  } : null,
                   tooltip: 'Zoom Out',
                 ),
               ],
@@ -380,27 +391,30 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             ),
           ),
 
-          if (_followUser)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 100,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
+          if (!_mapReady)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black,
                 child: Center(
-                  child: Container(
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: ThemeConstants.primaryColor.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          spreadRadius: 8,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24, height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryColor),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Loading map...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -479,19 +493,20 @@ class _MapModeChip extends StatelessWidget {
 
 class _MapButton extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool active;
   final String tooltip;
 
   const _MapButton({
     required this.icon,
-    required this.onPressed,
+    this.onPressed,
     this.active = false,
     required this.tooltip,
   });
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onPressed == null;
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -500,18 +515,18 @@ class _MapButton extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: disabled ? Colors.black.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: active
                   ? ThemeConstants.primaryColor.withValues(alpha: 0.5)
-                  : Colors.white.withValues(alpha: 0.1),
+                  : Colors.white.withValues(alpha: disabled ? 0.05 : 0.1),
               width: 1,
             ),
           ),
           child: Icon(
             icon,
-            color: active ? ThemeConstants.primaryColor : Colors.white70,
+            color: disabled ? Colors.white24 : (active ? ThemeConstants.primaryColor : Colors.white70),
             size: 20,
           ),
         ),
