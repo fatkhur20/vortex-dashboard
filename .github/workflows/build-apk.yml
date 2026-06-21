@@ -34,6 +34,9 @@ jobs:
       - name: Add Android permissions & Mapbox config
         run: MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} python3 .github/workflows/patch_manifest.py fresh/android/app/src/main/AndroidManifest.xml
 
+      - name: Bump compileSdk to 36
+        run: sed -i 's/compileSdk 35/compileSdk 36/' fresh/android/app/build.gradle
+
       - name: Install dependencies
         run: cd fresh && flutter pub get
 
