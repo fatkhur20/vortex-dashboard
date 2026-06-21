@@ -22,8 +22,7 @@ class CompassService {
   double _lastHeading = 0;
   static const double _smoothFactor = 0.3;
 
-  static const double _pi = pi;
-  static const double _rad2deg = 180.0 / _pi;
+  static const double _rad2deg = 180.0 / pi;
 
   Future<void> startListening() async {
     try {
@@ -57,34 +56,28 @@ class CompassService {
     final g = _lastGravity;
     final m = _lastMagnetic;
 
-    final Ax = g[0], Ay = g[1], Az = g[2];
-    final normA = sqrt(Ax * Ax + Ay * Ay + Az * Az);
-    if (normA < 0.1) return;
+    final normG = sqrt(g[0] * g[0] + g[1] * g[1] + g[2] * g[2]);
+    if (normG < 0.1) return;
 
-    final Ex = m[0], Ey = m[1], Ez = m[2];
-    final normE = sqrt(Ex * Ex + Ey * Ey + Ez * Ez);
-    if (normE < 0.1) return;
+    final normM = sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+    if (normM < 0.1) return;
 
-    final Hx = Ey * Az - Ez * Ay;
-    final Hy = Ez * Ax - Ex * Az;
-    final Hz = Ex * Ay - Ey * Ax;
+    final ax = g[0] / normG, ay = g[1] / normG, az = g[2] / normG;
+    final ex = m[0] / normM, ey = m[1] / normM, ez = m[2] / normM;
+
+    final Hx = ey * az - ez * ay;
+    final Hy = ez * ax - ex * az;
+    final Hz = ex * ay - ey * ax;
 
     final normH = sqrt(Hx * Hx + Hy * Hy + Hz * Hz);
     if (normH < 0.1) return;
 
-    final invH = 1.0 / normH;
-    final Nx = Hx * invH;
-    final Ny = Hy * invH;
-    final Nz = Hz * invH;
+    final nx = Hx / normH, ny = Hy / normH, nz = Hz / normH;
 
-    final invA = 1.0 / normA;
-    final Mx = Ny * Az - Nz * Ay;
-    final My = Nz * Ax - Nx * Az;
+    final Mx = ay * nz - az * ny;
+    final My = az * nx - ax * nz;
 
-    final Mx2 = Ex * Mx + Ey * My + Ez * Nz;
-    final My2 = Ex * (Ay * Nz - Az * Ny) + Ey * (Az * Nx - Ax * Nz) + Ez * (Ax * Ny - Ay * Nx);
-
-    var heading = atan2(My2, Mx2) * _rad2deg;
+    var heading = atan2(My, Mx) * _rad2deg;
     heading = (heading + 360) % 360;
 
     _currentHeading = _smoothFactor * heading + (1 - _smoothFactor) * _lastHeading;

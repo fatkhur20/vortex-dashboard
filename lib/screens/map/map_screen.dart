@@ -22,7 +22,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   final MapController _mapController = MapController();
   bool _followUser = true;
   bool _headingUp = false;
-  MapMode _mapMode = MapMode.hybrid;
+  MapMode _mapMode = MapMode.light;
   bool _showDebug = true;
 
   static const double _initialZoom = 17.0;
@@ -31,32 +31,15 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
 
   static const LatLng _defaultCenter = LatLng(-6.2088, 106.8456);
 
-  Timer? _followTimer;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _centerOnUser(animated: false);
-    });
   }
 
   @override
   void dispose() {
-    _followTimer?.cancel();
     _mapController.dispose();
     super.dispose();
-  }
-
-  void _centerOnUser({bool animated = true}) {
-    final loc = ref.read(currentLocationProvider);
-    if (loc['lat'] == 0 && loc['lng'] == 0) return;
-    final pos = LatLng(loc['lat']!, loc['lng']!);
-    if (animated) {
-      _mapController.move(pos, _mapController.camera.zoom);
-    } else {
-      _mapController.move(pos, _initialZoom);
-    }
   }
 
   void _onMapEvent(MapEvent event) {
@@ -65,60 +48,19 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     }
   }
 
-  String get _tileUrl {
-    switch (_mapMode) {
-      case MapMode.hybrid:
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      case MapMode.light:
-        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case MapMode.dark:
-        return 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
-    }
-  }
-
-  List<Widget> _buildTileLayers() {
-    if (_mapMode == MapMode.hybrid) {
-      return [
-        TileLayer(
-          urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-          userAgentPackageName: 'com.vortex.app',
-          errorTileCallback: (tile, error, stackTrace) {
-            debugPrint('Satellite tile error: $tile - $error');
-          },
-        ),
-        TileLayer(
-          urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-          userAgentPackageName: 'com.vortex.app',
-          errorTileCallback: (tile, error, stackTrace) {
-            debugPrint('Overlay tile error: $tile - $error');
-          },
-        ),
-        TileLayer(
-          urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
-          userAgentPackageName: 'com.vortex.app',
-          errorTileCallback: (tile, error, stackTrace) {
-            debugPrint('Roads tile error: $tile - $error');
-          },
-        ),
-      ];
-    }
-    return [
-      TileLayer(
-        urlTemplate: _tileUrl,
-        userAgentPackageName: 'com.vortex.app',
-        errorTileCallback: (tile, error, stackTrace) {
-          debugPrint('Map tile error: $tile - $error');
-        },
-      ),
-    ];
-  }
-
   double _computeHeading(GpsData? gpsData, double compassHeading) {
     final speed = gpsData?.speed ?? 0;
-    if (speed > 5 && (gpsData?.heading ?? 0) > 0) {
-      return gpsData!.heading;
+    final gpsH = gpsData?.heading ?? -1;
+    if (speed > 5 && gpsH >= 0) {
+      return gpsH;
     }
-    return compassHeading;
+    if (compassHeading > 0) {
+      return compassHeading;
+    }
+    if (gpsH >= 0) {
+      return gpsH;
+    }
+    return 0;
   }
 
   double? _lastRotation;
@@ -137,7 +79,14 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
 
   void _toggleFollow() {
     setState(() => _followUser = true);
-    _centerOnUser();
+    _followToUser();
+  }
+
+  void _followToUser() {
+    final loc = ref.read(currentLocationProvider);
+    if (loc['lat'] == 0 && loc['lng'] == 0) return;
+    final pos = LatLng(loc['lat']!, loc['lng']!);
+    _mapController.move(pos, _mapController.camera.zoom);
   }
 
   void _toggleHeadingUp() {
@@ -161,8 +110,9 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   }
 
   String _headingSourceLabel(double speed, double gpsH, double compassH) {
-    if (speed > 5 && gpsH > 0) return 'GPS';
-    if (compassH > 0) return speed > 5 ? 'GPS(0)→Comp' : 'Compass';
+    if (speed > 5 && gpsH >= 0) return 'GPS';
+    if (compassH > 0) return 'Compass';
+    if (gpsH >= 0) return 'GPS(static)';
     return '---';
   }
 
@@ -173,18 +123,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     final compassHeading = ref.watch(compassHeadingProvider);
     final heading = _computeHeading(gpsData, compassHeading);
     final speed = gpsData?.speed ?? 0;
+    final gpsH = gpsData?.heading ?? -1;
 
     final currentPos = (location['lat'] != 0 && location['lng'] != 0)
         ? LatLng(location['lat']!, location['lng']!)
         : _defaultCenter;
 
     _applyRotation(heading);
-
-    if (_followUser && currentPos != _mapController.camera.center) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapController.move(currentPos, _mapController.camera.zoom);
-      });
-    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -194,7 +139,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: currentPos,
+              initialCenter: _defaultCenter,
               initialZoom: _initialZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
@@ -204,7 +149,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               onMapEvent: _onMapEvent,
             ),
             children: [
-              ..._buildTileLayers(),
+              TileLayer(
+                urlTemplate: _mapMode == MapMode.hybrid
+                    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                    : _mapMode == MapMode.dark
+                        ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.vortex.app',
+                errorTileCallback: (tile, error, stackTrace) {
+                  debugPrint('Map tile error: $tile - $error');
+                },
+              ),
               MarkerLayer(
                 markers: [
                   Marker(
@@ -293,10 +248,10 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _dbgRow('Zoom', '${(_mapController.camera.zoom).toStringAsFixed(1)}'),
-                    _dbgRow('GPS H.', '${(gpsData?.heading ?? 0).toStringAsFixed(0)}°'),
+                    _dbgRow('GPS H.', '${gpsH >= 0 ? "${gpsH.toStringAsFixed(0)}°" : "---"}'),
                     _dbgRow('Compass', '${compassHeading.toStringAsFixed(0)}°'),
                     _dbgRow('Active', '${heading.toStringAsFixed(0)}° ${_headingDir(heading)}'),
-                    _dbgRow('Source', _headingSourceLabel(speed, gpsData?.heading ?? 0, compassHeading)),
+                    _dbgRow('Source', _headingSourceLabel(speed, gpsH, compassHeading)),
                     _dbgRow('Speed', '${speed.toStringAsFixed(1)} km/h'),
                     _dbgRow('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
                     _dbgRow('Rotate', _headingUp ? 'Heading Up' : 'North Up'),
@@ -424,6 +379,32 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               ),
             ),
           ),
+
+          if (_followUser)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 100,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: ThemeConstants.primaryColor.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

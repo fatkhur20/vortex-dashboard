@@ -19,10 +19,30 @@ Future<void> main() async {
     await f.writeAsString('$e\n$s');
   }
 
-  FlutterError.onError = (details) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final f = File('${dir.path}/vortex_flutter_error.log');
-    await f.writeAsString('${details.exception}\n${details.stack}');
+  FlutterError.onError = (details) {
+    try {
+      getApplicationDocumentsDirectory().then((dir) {
+        final f = File('${dir.path}/vortex_flutter_error.log');
+        f.writeAsStringSync('${details.exception}\n${details.stack}');
+      });
+    } catch (_) {}
+    FlutterError.dumpErrorToConsole(details);
+  };
+
+  ErrorWidget.builder = (details) {
+    return Material(
+      color: Colors.black,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Error: ${details.exception}',
+            style: const TextStyle(color: Color(0xFFFF1744), fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
   };
 
   try {
