@@ -5,6 +5,7 @@ import 'package:vortex_dashboard/models/trip_settings.dart';
 
 class StorageService {
   static StorageService? _instance;
+  static StorageService get instance => _instance ?? StorageService._();
   factory StorageService() => _instance ?? StorageService._();
   StorageService._();
 
@@ -14,6 +15,7 @@ class StorageService {
     await Hive.openBox(AppConstants.hiveBoxSettings);
     await Hive.openBox(AppConstants.hiveBoxTracking);
     await Hive.openBox(AppConstants.hiveBoxTrips);
+    await Hive.openBox('geofences');
     _instance = StorageService._();
   }
 
@@ -21,6 +23,8 @@ class StorageService {
   Box get _settingsBox => Hive.box(AppConstants.hiveBoxSettings);
   Box get _trackingBox => Hive.box(AppConstants.hiveBoxTracking);
   Box get _tripsBox => Hive.box(AppConstants.hiveBoxTrips);
+
+  Box? getBox(String name) => Hive.isBoxOpen(name) ? Hive.box(name) : null;
 
   Future<void> saveRide(RideModel ride) async {
     await _ridesBox.put(ride.id, ride);
