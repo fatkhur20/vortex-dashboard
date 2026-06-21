@@ -29,6 +29,9 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   static const double _initialZoom = 17.0;
   static const double _minZoom = 5.0;
   static const double _maxZoom = 19.0;
+  static const double _hybridMaxZoom = 18.0;
+
+  double get _effectiveMaxZoom => _mapMode == MapMode.hybrid ? _hybridMaxZoom : _maxZoom;
 
   static const LatLng _defaultCenter = LatLng(-6.2088, 106.8456);
 
@@ -151,7 +154,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               initialCenter: _defaultCenter,
               initialZoom: _initialZoom,
               minZoom: _minZoom,
-              maxZoom: _maxZoom,
+              maxZoom: _effectiveMaxZoom,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
               ),
@@ -334,16 +337,16 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                 _MapButton(
                   icon: Icons.add,
                   onPressed: _mapReady ? () {
-                    final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _maxZoom);
+                    final z = (_mapController.camera.zoom + 1).clamp(_minZoom, _effectiveMaxZoom);
                     _mapController.move(_mapController.camera.center, z);
-                  } : null,
+                  },
                   tooltip: 'Zoom In',
                 ),
                 const SizedBox(height: 8),
                 _MapButton(
                   icon: Icons.remove,
                   onPressed: _mapReady ? () {
-                    final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _maxZoom);
+                    final z = (_mapController.camera.zoom - 1).clamp(_minZoom, _effectiveMaxZoom);
                     _mapController.move(_mapController.camera.center, z);
                   } : null,
                   tooltip: 'Zoom Out',

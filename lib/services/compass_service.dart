@@ -77,7 +77,7 @@ class CompassService {
     final Mx = ay * nz - az * ny;
     final My = az * nx - ax * nz;
 
-    var heading = atan2(My, Mx) * _rad2deg;
+    var heading = atan2(ny, My) * _rad2deg;
     heading = (heading + 360) % 360;
 
     _currentHeading = _smoothFactor * heading + (1 - _smoothFactor) * _lastHeading;
