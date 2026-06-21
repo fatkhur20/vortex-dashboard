@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vortex_dashboard/app.dart';
 import 'package:vortex_dashboard/core/constants/app_constants.dart';
@@ -9,6 +10,11 @@ import 'package:vortex_dashboard/services/storage_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  const mapboxToken = String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
+  if (mapboxToken.isNotEmpty) {
+    MapboxOptions.setAccessToken(mapboxToken);
+  }
 
   try {
     await Hive.initFlutter();

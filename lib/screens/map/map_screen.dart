@@ -20,6 +20,9 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   MapboxMap? _mapController;
   bool _mapReady = false;
+  bool _mapError = false;
+  String _mapErrorMessage = '';
+  Timer? _mapReadyTimeout;
   bool _followUser = true;
   bool _headingUp = false;
   MapStyle _mapStyle = MapStyle.satelliteHybrid;
@@ -54,6 +57,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void dispose() {
     _screenPosTimer?.cancel();
+    _mapReadyTimeout?.cancel();
     super.dispose();
   }
 
@@ -90,13 +94,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onMapCreated(MapboxMap mapboxMap) {
+    _mapReadyTimeout?.cancel();
     _mapController = mapboxMap;
+    mapboxMap.onStyleLoaded.listen((event) {
+      debugPrint('[MapScreen] Style loaded');
+    });
+    mapboxMap.onMapLoadingError.listen((event) {
+      debugPrint('[MapScreen] Map loading error: ${event.message}');
+    });
+    mapboxMap.onMapLoadError.listen((event) {
+      debugPrint('[MapScreen] Map load error: ${event.type} ${event.message}');
+      if (mounted) {
+        setState(() {
+          _mapError = true;
+          _mapErrorMessage = event.message ?? 'Unknown map load error';
+        });
+      }
+    });
     mapboxMap.setBounds(CameraBoundsOptions(
       minZoom: _minZoom,
       maxZoom: _maxZoom,
     ));
     setState(() => _mapReady = true);
     _startScreenPosUpdates();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _mapReadyTimeout = Timer(const Duration(seconds: 20), () {
+      if (!_mapReady && mounted) {
+        debugPrint('[MapScreen] Map failed to initialize within 20 seconds');
+        setState(() {
+          _mapError = true;
+          _mapErrorMessage = 'Map initialization timeout';
+        });
+      }
+    });
   }
 
   void _startScreenPosUpdates() {
@@ -403,6 +437,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     _dbgRow('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
                     _dbgRow('Rotate', _headingUp ? 'Heading Up' : 'North Up'),
                     _dbgRow('Style', _mapStyle.name),
+                    if (_mapError) _dbgRow('Error', _mapErrorMessage),
                   ],
                 ),
               ),
@@ -521,7 +556,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          if (!_mapReady)
+          if (!_mapReady || _mapError)
             Positioned.fill(
               child: Container(
                 color: Colors.black,
@@ -529,7 +564,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      if (!_mapError) SizedBox(
                         width: 24, height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
@@ -538,10 +573,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Loading map...',
+                        _mapError ? _mapErrorMessage : 'Loading map...',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: _mapError
+                              ? const Color(0xFFFF1744)
+                              : Colors.white.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
