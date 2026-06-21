@@ -236,19 +236,16 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                                   ),
                                 ),
                               ),
-                              Transform.rotate(
-                                angle: 3.1415927,
-                                child: Icon(
-                                  Icons.navigation,
-                                  color: Colors.white,
-                                  size: 28,
-                                  shadows: [
-                                    Shadow(
-                                      color: ThemeConstants.primaryColor.withValues(alpha: 0.8),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
+                              Icon(
+                                Icons.navigation,
+                                color: Colors.white,
+                                size: 28,
+                                shadows: [
+                                  Shadow(
+                                    color: ThemeConstants.primaryColor.withValues(alpha: 0.8),
+                                    blurRadius: 8,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
