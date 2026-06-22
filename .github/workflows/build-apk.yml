@@ -20,11 +20,13 @@ jobs:
         run: |
           flutter create --org com.vortex --project-name vortex_dashboard --platforms android fresh
           # Pin Gradle to 8.7+ and add Kotlin DSL plugin repository
-          echo 'distributionBase=GRADLE_USER_HOME
+          cat > fresh/android/gradle/wrapper/gradle-wrapper.properties << 'WRAPEOF'
+distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
 distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
 zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists' > fresh/android/gradle/wrapper/gradle-wrapper.properties
+zipStorePath=wrapper/dists
+WRAPEOF
           # Add Gradle Plugin Portal to project settings
           cat > fresh/android/settings.gradle.kts << 'SETTINGSEOF'
 pluginManagement {
