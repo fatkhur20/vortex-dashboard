@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/providers/settings_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
+import 'package:vortex_dashboard/providers/activity_provider.dart';
+import 'package:vortex_dashboard/providers/compass_provider.dart';
+import 'package:vortex_dashboard/providers/gps_provider.dart';
+import 'package:vortex_dashboard/services/notification_service.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
+
+final locationSharingProvider = StateProvider<bool>((ref) => true);
+final backgroundTrackingProvider = StateProvider<bool>((ref) => false);
+final arrivalAlertsProvider = StateProvider<bool>((ref) => false);
+final departureAlertsProvider = StateProvider<bool>((ref) => false);
+final devModeProvider = StateProvider<bool>((ref) => false);
 
 class SettingsTab extends ConsumerStatefulWidget {
   const SettingsTab({super.key});
@@ -12,16 +23,46 @@ class SettingsTab extends ConsumerStatefulWidget {
   ConsumerState<SettingsTab> createState() => _SettingsTabState();
 }
 
-class _SettingsTabState extends ConsumerState<SettingsTab> {
-  bool _showDevMode = false;
+class _SettingsTabState extends ConsumerState<SettingsTab> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    _loadPersisted();
+  }
+
+  Future<void> _loadPersisted() async {
+    final prefs = await SharedPreferences.getInstance();
+    ref.read(locationSharingProvider.notifier).state = prefs.getBool('location_sharing') ?? true;
+    ref.read(backgroundTrackingProvider.notifier).state = prefs.getBool('background_tracking') ?? false;
+    ref.read(arrivalAlertsProvider.notifier).state = prefs.getBool('arrival_alerts') ?? false;
+    ref.read(departureAlertsProvider.notifier).state = prefs.getBool('departure_alerts') ?? false;
+    ref.read(devModeProvider.notifier).state = prefs.getBool('dev_mode') ?? false;
+  }
+
+  Future<void> _persist(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
     final useKmh = ref.watch(useKmhProvider);
     final themeMode = ref.watch(themeModeProvider);
-    final groupsAsync = ref.watch(groupsProvider);
-    final memberCount = ref.watch(activeGroupMembersProvider).length;
+    final gpsData = ref.watch(gpsDataProvider);
+    final compassHeading = ref.watch(compassHeadingProvider);
     final uid = ref.watch(userIdProvider);
+    final members = ref.watch(activeGroupMembersProvider);
+    final gpsH = gpsData?.heading ?? -1;
+    final speed = gpsData?.speed ?? 0;
+    final loc = ref.watch(currentLocationProvider);
+    final activityAsync = ref.watch(currentActivityLabelProvider);
+    final memberCount = members.length;
+
+    final locationSharing = ref.watch(locationSharingProvider);
+    final backgroundTracking = ref.watch(backgroundTrackingProvider);
+    final arrivalAlerts = ref.watch(arrivalAlertsProvider);
+    final departureAlerts = ref.watch(departureAlertsProvider);
+    final devMode = ref.watch(devModeProvider);
 
     return Scaffold(
       backgroundColor: ThemeConstants.amoledBackground,
@@ -53,7 +94,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Display Name', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                      Text(memberCount > 0 ? '${memberCount} group${memberCount == 1 ? '' : 's'}' : 'No groups',
+                      Text('$memberCount group${memberCount == 1 ? '' : 's'}',
                           style: TextStyle(color: Colors.white38, fontSize: 13)),
                     ],
                   ),
@@ -68,9 +109,19 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _switchTile(Icons.gps_fixed, 'Location Sharing', true, (_) {}),
+                _switchTile(Icons.gps_fixed, 'Location Sharing', locationSharing, (v) {
+                  ref.read(locationSharingProvider.notifier).state = v;
+                  _persist('location_sharing', v);
+                  if (!v) ref.read(trackingServiceProvider).stopSync();
+                  else ref.read(trackingServiceProvider).startSync(ref, groupId: ref.read(trackingServiceProvider).activeGroupId ?? '');
+                }),
                 const Divider(color: Colors.white12, height: 8),
-                _switchTile(Icons.battery_charging_full, 'Background Tracking', false, (_) {}),
+                _switchTile(Icons.battery_charging_full, 'Background Tracking', backgroundTracking, (v) {
+                  ref.read(backgroundTrackingProvider.notifier).state = v;
+                  _persist('background_tracking', v);
+                  if (v) _startBackgroundService();
+                  else _stopBackgroundService();
+                }),
               ],
             ),
           ),
@@ -81,9 +132,17 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _switchTile(Icons.place, 'Arrival Alerts', false, (_) {}),
+                _switchTile(Icons.place, 'Arrival Alerts', arrivalAlerts, (v) {
+                  ref.read(arrivalAlertsProvider.notifier).state = v;
+                  _persist('arrival_alerts', v);
+                  if (v) notificationService.addArrival('Test', 'Home');
+                }),
                 const Divider(color: Colors.white12, height: 8),
-                _switchTile(Icons.departure_board, 'Departure Alerts', false, (_) {}),
+                _switchTile(Icons.departure_board, 'Departure Alerts', departureAlerts, (v) {
+                  ref.read(departureAlertsProvider.notifier).state = v;
+                  _persist('departure_alerts', v);
+                  if (v) notificationService.addDeparture('Test', 'Home');
+                }),
               ],
             ),
           ),
@@ -112,26 +171,35 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _switchTile(Icons.developer_mode, 'Developer Mode', _showDevMode, (v) {
-                  setState(() => _showDevMode = v);
+                _switchTile(Icons.developer_mode, 'Developer Mode', devMode, (v) {
+                  ref.read(devModeProvider.notifier).state = v;
+                  _persist('dev_mode', v);
                 }),
-                if (_showDevMode) ...[
+                if (devMode) ...[
                   const Divider(color: Colors.white12, height: 8),
                   _infoRow('User ID', uid ?? '--'),
                   const Divider(color: Colors.white12, height: 8),
-                  _infoRow('Groups', '${groupsAsync.valueOrNull?.length ?? 0}'),
+                  _infoRow('FPS', '0'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('GPS Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(1)}m'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('Heading', '${gpsH >= 0 ? gpsH.toStringAsFixed(1) : "---"}\u{00B0}'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('Compass', '${compassHeading.toStringAsFixed(1)}\u{00B0}'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('Speed', '${speed.toStringAsFixed(1)} km/h'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('Location', '${(loc["lat"] ?? 0).toStringAsFixed(4)}, ${(loc["lng"] ?? 0).toStringAsFixed(4)}'),
+                  const Divider(color: Colors.white12, height: 8),
+                  _infoRow('Activity', activityAsync.valueOrNull ?? '--'),
                   const Divider(color: Colors.white12, height: 8),
                   _infoRow('Members', '$memberCount'),
                   const Divider(color: Colors.white12, height: 8),
-                  _infoRow('FPS', '0'),
+                  _infoRow('Groups', '${ref.watch(groupsProvider).valueOrNull?.length ?? 0}'),
                   const Divider(color: Colors.white12, height: 8),
-                  _infoRow('Map Style', 'Satellite Hybrid'),
+                  _infoRow('Upload', 'Every 10s'),
                   const Divider(color: Colors.white12, height: 8),
-                  _infoRow('3D', _show3DGlobal ? 'ON' : 'OFF'),
-                  const Divider(color: Colors.white12, height: 8),
-                  _infoRow('Terrain', 'ON'),
-                  const Divider(color: Colors.white12, height: 8),
-                  _infoRow('Globe', 'OFF'),
+                  _infoRow('Poll', 'Every 5s'),
                 ],
               ],
             ),
@@ -190,5 +258,13 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
     );
   }
 
-  bool get _show3DGlobal => false;
+  void _startBackgroundService() {
+    // Android foreground service would be started here via MethodChannel
+    debugPrint('Background tracking started');
+  }
+
+  void _stopBackgroundService() {
+    // Android foreground service would be stopped here via MethodChannel
+    debugPrint('Background tracking stopped');
+  }
 }

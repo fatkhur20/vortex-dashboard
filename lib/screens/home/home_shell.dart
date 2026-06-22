@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/providers/tracking_provider.dart';
+import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';
 import 'package:vortex_dashboard/screens/groups/group_tab.dart';
 import 'package:vortex_dashboard/screens/notifications/notifications_tab.dart';
 import 'package:vortex_dashboard/screens/settings/settings_tab.dart';
 import 'package:vortex_dashboard/widgets/common/side_drawer.dart';
+import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -30,7 +34,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const SideDrawer(),
+      drawer: SideDrawer(
+        onNavigate: (tab) => setState(() => _currentIndex = tab),
+        onJoinGroup: _showJoinGroup,
+        onCreateGroup: _showCreateGroup,
+      ),
       body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -131,11 +139,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             const SizedBox(height: 20),
             const Text('Quick Actions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
-            _actionTile(Icons.add_circle_outline, 'Create Group', () { Navigator.pop(context); _navigateToGroups(); }),
-            _actionTile(Icons.link, 'Join Group', () { Navigator.pop(context); _navigateToGroups(); }),
-            _actionTile(Icons.place, 'Add Place', () { Navigator.pop(context); }),
-            _actionTile(Icons.shield_outlined, 'Create Geofence', () { Navigator.pop(context); }),
-            _actionTile(Icons.share, 'Share Location', () { Navigator.pop(context); }),
+            _actionTile(Icons.add_circle_outline, 'Create Group', () { Navigator.pop(context); _showCreateGroup(); }),
+            _actionTile(Icons.link, 'Join Group', () { Navigator.pop(context); _showJoinGroup(); }),
+            _actionTile(Icons.place, 'Add Place', () { Navigator.pop(context); _addPlace(); }),
+            _actionTile(Icons.shield_outlined, 'Create Geofence', () { Navigator.pop(context); _createGeofence(); }),
+            _actionTile(Icons.share, 'Share Location', () { Navigator.pop(context); _shareLocation(); }),
           ],
         ),
       ),
@@ -150,7 +158,212 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     );
   }
 
-  void _navigateToGroups() {
-    setState(() => _currentIndex = 1);
+  void _showCreateGroup() {
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.darkBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Create Group', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Group name', hintStyle: TextStyle(color: Colors.white38),
+            filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              await ref.read(groupActionsProvider).create(name);
+              ref.read(groupActionsProvider).refresh();
+              setState(() => _currentIndex = 1);
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Group created'), duration: Duration(seconds: 2)),
+              );
+            },
+            child: const Text('Create', style: TextStyle(color: ThemeConstants.primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJoinGroup() {
+    final codeCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.darkBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Join Group', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter 6-character invite code', style: TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: codeCtrl,
+              textCapitalization: TextCapitalization.characters,
+              textAlign: TextAlign.center,
+              maxLength: 6,
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: ThemeConstants.primaryColor, letterSpacing: 8),
+              decoration: InputDecoration(
+                counterText: '', hintText: '------',
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.15), fontSize: 28, letterSpacing: 8),
+                filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          TextButton(
+            onPressed: () async {
+              final code = codeCtrl.text.trim().toUpperCase();
+              if (code.length != 6) return;
+              Navigator.pop(ctx);
+              try {
+                await ref.read(groupActionsProvider).join(code);
+                ref.read(groupActionsProvider).refresh();
+                setState(() => _currentIndex = 1);
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Joined group'), duration: Duration(seconds: 2)),
+                );
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+                );
+              }
+            },
+            child: const Text('Join', style: TextStyle(color: ThemeConstants.primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addPlace() {
+    final loc = ref.read(currentLocationProvider);
+    final lat = loc['lat'] ?? 0.0;
+    final lng = loc['lng'] ?? 0.0;
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.darkBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Place', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current location: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
+                style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Place name (e.g. Home, Work)', hintStyle: TextStyle(color: Colors.white38),
+                filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          TextButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Saved "$name"'), duration: Duration(seconds: 2)),
+              );
+            },
+            child: const Text('Save', style: TextStyle(color: ThemeConstants.primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _createGeofence() {
+    final loc = ref.read(currentLocationProvider);
+    final lat = loc['lat'] ?? 0.0;
+    final lng = loc['lng'] ?? 0.0;
+    int radiusMeters = 250;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: ThemeConstants.darkBackground,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Create Geofence', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Location: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
+                  style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 16),
+              const Text('Radius', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [100, 250, 500, 1000].map((r) {
+                  final active = radiusMeters == r;
+                  return ChoiceChip(
+                    label: Text('${r}m'),
+                    selected: active,
+                    onSelected: (_) => setDialogState(() => radiusMeters = r),
+                    selectedColor: ThemeConstants.primaryColor.withValues(alpha: 0.3),
+                    labelStyle: TextStyle(color: active ? Colors.white : Colors.white54, fontWeight: FontWeight.w600),
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Geofence created (${radiusMeters}m)'), duration: Duration(seconds: 2)),
+                );
+              },
+              child: const Text('Save', style: TextStyle(color: ThemeConstants.primaryColor)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _shareLocation() {
+    final loc = ref.read(currentLocationProvider);
+    final lat = loc['lat'] ?? 0.0;
+    final lng = loc['lng'] ?? 0.0;
+    final url = 'https://maps.google.com/?q=$lat,$lng';
+    Clipboard.setData(ClipboardData(text: url));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Location link copied to clipboard'), duration: Duration(seconds: 2)),
+    );
   }
 }

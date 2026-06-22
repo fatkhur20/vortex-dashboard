@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/providers/partner_provider.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';
@@ -442,7 +443,14 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen>
     }
   }
 
-  void _shareInvite() {
-    // TODO: implement share
+  Future<void> _shareInvite() async {
+    if (_inviteCode == null) return;
+    if (_inviteCode!.isEmpty) return;
+    try {
+      await Share.share(
+        'Join my group on Vortex Tracker!\n\nInvite code: $_inviteCode\n\nDownload Vortex Tracker and enter this code to connect.',
+        subject: 'Vortex Tracker Invite',
+      );
+    } catch (_) {}
   }
 }
