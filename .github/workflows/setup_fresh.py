@@ -29,13 +29,6 @@ zipStorePath=wrapper/dists
         gradlePluginPortal()
     }
 }
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
 rootProject.name = "vortex_dashboard"
 include(":app")
 """)
