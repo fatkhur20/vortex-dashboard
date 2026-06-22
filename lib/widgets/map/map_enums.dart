@@ -7,13 +7,13 @@ extension MapStyleLabelX on MapStyleLabel {
   String get uri {
     switch (this) {
       case MapStyleLabel.satelliteHybrid:
-        return 'mapbox://styles/mapbox/satellite-streets-v12';
+        return 'mapbox://styles/chenaa/cmqp68cnn00cq01s58inog2f6';
       case MapStyleLabel.streets:
         return 'mapbox://styles/mapbox/streets-v12';
       case MapStyleLabel.dark:
         return 'mapbox://styles/mapbox/dark-v11';
       case MapStyleLabel.outdoors:
-        return 'mapbox://styles/mapbox/outdoors-v12';
+        return 'mapbox://styles/chenaa/cmqp5uhlz000g01qmhycg6m9q';
       case MapStyleLabel.custom:
         return 'mapbox://styles/mapbox/streets-v12';
     }
