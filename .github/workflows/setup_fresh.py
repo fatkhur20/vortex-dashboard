@@ -20,6 +20,27 @@ zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 """)
 
+    # Bump Kotlin plugin version for plugin compatibility
+    import re
+    for fn in [f"{fresh}/android/build.gradle.kts", f"{fresh}/android/build.gradle"]:
+        if os.path.exists(fn):
+            with open(fn) as f:
+                content = f.read()
+            # Kotlin DSL: id("org.jetbrains.kotlin.android") version "X.Y.Z"
+            content = re.sub(
+                r'(id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+")\d+\.\d+\.\d+(")',
+                r'\g<1>2.1.0\g<2>',
+                content
+            )
+            # Groovy: ext.kotlin_version = 'X.Y.Z'
+            content = re.sub(
+                r"(ext\.kotlin_version\s*=\s*')\d+\.\d+\.\d+(')",
+                r"\g<1>2.1.0\g<2>",
+                content
+            )
+            with open(fn, "w") as f:
+                f.write(content)
+
     # Global init script as safety net for Flutter SDK internal Gradle files
     gradle_home = os.path.expanduser("~/.gradle")
     os.makedirs(gradle_home, exist_ok=True)
