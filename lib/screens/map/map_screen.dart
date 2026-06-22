@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/services/storage_service.dart';
 import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/models/geofence.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
@@ -90,11 +91,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _activeGeofenceId;
   String? _activeGeofenceLabel;
   StreamSubscription<GeofenceEvent>? _geofenceEventSub;
+  String? _userPhotoPath;
 
   @override
   void initState() {
     super.initState();
     _loadSavedStyle();
+    _userPhotoPath = StorageService.instance.getString('user_photo_path');
+    if (_userPhotoPath!.isEmpty) _userPhotoPath = null;
     _geofenceEventSub = GeofenceService().eventStream.listen(_onGeofenceEvent);
     _mapReadyTimeout = Timer(const Duration(seconds: 20), () {
       if (!_mapReady && mounted) {
@@ -744,6 +748,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               memberName: member.displayName,
               activityEmoji: _getActivityEmoji(member.activity),
               battery: member.battery,
+              photoUrl: member.avatarUrl,
               onTap: () {
                 _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
                 _showMemberProfile(member);
@@ -851,11 +856,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
             if (_mapReady && _userScreenX != null && _userScreenY != null)
               Positioned(
-                left: _userScreenX! - 40,
+                left: _userScreenX! - 32,
                 top: _userScreenY! - 40,
                 child: UserMapMarker(
                   heading: heading,
                   activityEmoji: activityEmoji,
+                  photoUrl: _userPhotoPath,
                   onTap: _toggleFollow,
                 ),
               ),

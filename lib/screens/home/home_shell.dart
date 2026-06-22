@@ -11,6 +11,7 @@ import 'package:vortex_dashboard/screens/map/map_screen.dart';
 import 'package:vortex_dashboard/screens/groups/group_tab.dart';
 import 'package:vortex_dashboard/screens/notifications/notifications_tab.dart';
 import 'package:vortex_dashboard/screens/settings/settings_tab.dart';
+import 'package:vortex_dashboard/screens/geofence/geofence_screen.dart';
 import 'package:vortex_dashboard/widgets/common/side_drawer.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 
@@ -146,6 +147,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             _actionTile(Icons.link, 'Join Group', () { Navigator.pop(context); _showJoinGroup(); }),
             _actionTile(Icons.place, 'Add Place', () { Navigator.pop(context); _addPlace(); }),
             _actionTile(Icons.shield_outlined, 'Create Geofence', () { Navigator.pop(context); _createGeofence(); }),
+            _actionTile(Icons.list_alt, 'Manage Places', () { Navigator.pop(context); _manageGeofences(); }),
             _actionTile(Icons.share, 'Share Location', () { Navigator.pop(context); _shareLocation(); }),
           ],
         ),
@@ -337,7 +339,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               Navigator.pop(ctx);
               final gf = Geofence(
                 id: const Uuid().v4(), name: name, type: GeofenceType.custom,
-                latitude: lat, longitude: lng, radiusMeters: 100,
+                latitude: lat, longitude: lng, radiusMeters: 25,
               );
               await ref.read(geofenceListProvider.notifier).add(gf);
               if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -356,7 +358,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final lat = loc['lat'] ?? 0.0;
     final lng = loc['lng'] ?? 0.0;
     final nameCtrl = TextEditingController();
-    int radiusMeters = 250;
+    int radiusMeters = 25;
 
     showDialog(
       context: context,
@@ -387,7 +389,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                children: [100, 250, 500, 1000].map((r) {
+                children: [25, 50, 100].map((r) {
                   final active = radiusMeters == r;
                   return ChoiceChip(
                     label: Text('${r}m'),
@@ -424,6 +426,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ),
       ),
     );
+  }
+
+  void _manageGeofences() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const GeofenceScreen()));
   }
 
   void _shareLocation() {

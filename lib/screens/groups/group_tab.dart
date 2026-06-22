@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/models/group_info.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
+import 'package:vortex_dashboard/services/storage_service.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';
 
@@ -16,12 +18,33 @@ class GroupTab extends ConsumerStatefulWidget {
 class _GroupTabState extends ConsumerState<GroupTab> {
   final _nameCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
+  final Map<String, String> _inviteCodes = {};
+  bool _loadingInvite = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _codeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadInviteCode(String groupId) async {
+    if (_inviteCodes.containsKey(groupId)) return;
+    final stored = StorageService.instance.getString('invite_$groupId');
+    if (stored.isNotEmpty) {
+      setState(() => _inviteCodes[groupId] = stored);
+      return;
+    }
+    setState(() => _loadingInvite = true);
+    try {
+      final invite = await ref.read(groupActionsProvider).createInvite(groupId);
+      final code = invite['code'] as String? ?? invite['invite_code'] as String? ?? '';
+      if (code.isNotEmpty) {
+        await StorageService.instance.saveString('invite_$groupId', code);
+        setState(() => _inviteCodes[groupId] = code);
+      }
+    } catch (_) {}
+    setState(() => _loadingInvite = false);
   }
 
   @override
@@ -132,6 +155,10 @@ class _GroupTabState extends ConsumerState<GroupTab> {
 
   Widget _groupTile(GroupInfo g, bool active) {
     final icon = g.memberCount == 1 ? Icons.person : g.memberCount == 2 ? Icons.favorite : Icons.groups;
+    if (active && !_inviteCodes.containsKey(g.id)) {
+      _loadInviteCode(g.id);
+    }
+    final code = _inviteCodes[g.id];
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       margin: const EdgeInsets.only(bottom: 8),
@@ -140,37 +167,74 @@ class _GroupTabState extends ConsumerState<GroupTab> {
         onTap: () async {
           await ref.read(groupActionsProvider).switchGroup(g.id);
         },
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: active ? ThemeConstants.primaryColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-              ),
-              child: Icon(icon, color: active ? ThemeConstants.primaryColor : Colors.white38, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(g.name, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text('${g.memberCount} ${g.memberCount == 1 ? 'member' : 'members'}',
-                      style: TextStyle(color: Colors.white38, fontSize: 13)),
-                ],
-              ),
-            ),
-            if (active)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: ThemeConstants.primaryColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: active ? ThemeConstants.primaryColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                  ),
+                  child: Icon(icon, color: active ? ThemeConstants.primaryColor : Colors.white38, size: 22),
                 ),
-                child: Text('Active', style: TextStyle(fontSize: 11, color: ThemeConstants.primaryColor, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(g.name, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text('${g.memberCount} ${g.memberCount == 1 ? 'member' : 'members'}',
+                          style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                if (active)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: ThemeConstants.primaryColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Active', style: TextStyle(fontSize: 11, color: ThemeConstants.primaryColor, fontWeight: FontWeight.w600)),
+                  ),
+              ],
+            ),
+            if (active && code != null) ...[
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Invite code copied'), duration: Duration(seconds: 2)),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: ThemeConstants.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: ThemeConstants.primaryColor.withValues(alpha: 0.15)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.link, color: ThemeConstants.primaryColor, size: 14),
+                      const SizedBox(width: 6),
+                      Text(code, style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: ThemeConstants.primaryColor, letterSpacing: 3,
+                      )),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.copy, color: Colors.white54, size: 14),
+                    ],
+                  ),
+                ),
               ),
+            ],
           ],
         ),
       ),

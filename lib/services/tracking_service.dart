@@ -51,7 +51,11 @@ class TrackingService {
         final me = await _api.getMe(savedUserId);
         _currentUser = me;
         _isInitialized = true;
-        return me;
+        if (displayName != null && displayName != me.displayName) {
+          await _api.updateProfile(me.id, displayName: displayName);
+          _currentUser = me.copyWith(displayName: displayName);
+        }
+        return _currentUser!;
       } catch (_) {
         // Saved ID invalid, re-register
       }

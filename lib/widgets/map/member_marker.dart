@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 
@@ -7,12 +8,43 @@ Color _avatarColor(String id) {
   return HSVColor.fromAHSV(1.0, h, 0.45, 0.55).toColor();
 }
 
+class _SmoothArrowPainter extends CustomPainter {
+  final Color color;
+  final bool isMe;
+
+  _SmoothArrowPainter({required this.color, this.isMe = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+
+    path.moveTo(w / 2, h);
+    path.quadraticBezierTo(w * 0.85, h * 0.7, w * 0.7, h * 0.35);
+    path.quadraticBezierTo(w * 0.7, h * 0.1, w / 2, 0);
+    path.quadraticBezierTo(w * 0.3, h * 0.1, w * 0.3, h * 0.35);
+    path.quadraticBezierTo(w * 0.15, h * 0.7, w / 2, h);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class MemberMapMarker extends StatelessWidget {
   final String memberId;
   final String memberName;
   final String activityEmoji;
   final bool isMe;
   final double? battery;
+  final String? photoUrl;
   final VoidCallback onTap;
 
   const MemberMapMarker({
@@ -22,6 +54,7 @@ class MemberMapMarker extends StatelessWidget {
     required this.activityEmoji,
     this.isMe = false,
     this.battery,
+    this.photoUrl,
     required this.onTap,
   });
 
@@ -36,44 +69,32 @@ class MemberMapMarker extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
-                  boxShadow: [
-                    BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10, spreadRadius: 1),
-                  ],
-                ),
-                child: Center(
-                  child: Text(initial,
-                      style: TextStyle(
-                        fontSize: size * 0.45,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        shadows: [Shadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 3)],
-                      )),
+          SizedBox(
+            width: size + 8,
+            height: size + 12,
+            child: CustomPaint(
+              painter: _SmoothArrowPainter(color: color, isMe: isMe),
+              child: Center(
+                child: Container(
+                  width: size - 10,
+                  height: size - 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withAlpha(80),
+                  ),
+                  child: photoUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular((size - 10) / 2),
+                          child: Image.network(photoUrl!, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _initialText(initial, size - 10),
+                          ),
+                        )
+                      : _initialText(initial, size - 10),
                 ),
               ),
-              Positioned(
-                bottom: -2,
-                right: -4,
-                child: Text(activityEmoji, style: const TextStyle(fontSize: 14)),
-              ),
-              if (battery != null)
-                Positioned(
-                  top: -2,
-                  left: -2,
-                  child: _batteryIcon(battery!),
-                ),
-            ],
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
@@ -90,23 +111,13 @@ class MemberMapMarker extends StatelessWidget {
     );
   }
 
-  Widget _batteryIcon(double level) {
-    IconData icon;
-    Color col;
-    if (level > 75) {
-      icon = Icons.battery_full;
-      col = const Color(0xFF00E676);
-    } else if (level > 50) {
-      icon = Icons.battery_std;
-      col = const Color(0xFFFFC107);
-    } else if (level > 20) {
-      icon = Icons.battery_unknown;
-      col = const Color(0xFFFF9800);
-    } else {
-      icon = Icons.battery_alert;
-      col = const Color(0xFFFF1744);
-    }
-    return Icon(icon, color: col, size: 12);
+  Widget _initialText(String initial, double s) {
+    return Center(
+      child: Text(initial,
+          style: TextStyle(
+            fontSize: s * 0.5, fontWeight: FontWeight.w700, color: Colors.white,
+          )),
+    );
   }
 }
 

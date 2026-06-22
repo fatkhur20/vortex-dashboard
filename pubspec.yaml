@@ -36,6 +36,7 @@ dependencies:
   share_plus:
   url_launcher:
   package_info_plus:
+  image_picker:
 
 dev_dependencies:
   flutter_test:
