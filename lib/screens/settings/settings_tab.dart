@@ -191,7 +191,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> with WidgetsBindingOb
                   const Divider(color: Colors.white12, height: 8),
                   _infoRow('Location', '${(loc["lat"] ?? 0).toStringAsFixed(4)}, ${(loc["lng"] ?? 0).toStringAsFixed(4)}'),
                   const Divider(color: Colors.white12, height: 8),
-                  _infoRow('Activity', activityAsync.valueOrNull ?? '--'),
+                  _infoRow('Activity', activityAsync),
                   const Divider(color: Colors.white12, height: 8),
                   _infoRow('Members', '$memberCount'),
                   const Divider(color: Colors.white12, height: 8),
