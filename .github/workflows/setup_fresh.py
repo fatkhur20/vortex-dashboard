@@ -29,7 +29,13 @@ zipStorePath=wrapper/dists
         before = content
         # Kotlin DSL: id("org.jetbrains.kotlin.android") version "X.Y.Z" apply false
         content = re.sub(
-            r'(id\s*["\']org\.jetbrains\.kotlin\.android["\']\s+version\s+["\'])\d+\.\d+\.\d+(["\'])',
+            r'(id\s*\(\s*["\']org\.jetbrains\.kotlin\.android["\']\s*\)\s+version\s+["\'])\d+\.\d+\.\d+(["\'])',
+            rf'\g<1>{KOTLIN_VERSION}\g<2>',
+            content
+        )
+        # Groovy: id "org.jetbrains.kotlin.android" version "X.Y.Z" apply false
+        content = re.sub(
+            r'(id\s+["\']org\.jetbrains\.kotlin\.android["\']\s+version\s+["\'])\d+\.\d+\.\d+(["\'])',
             rf'\g<1>{KOTLIN_VERSION}\g<2>',
             content
         )
@@ -47,12 +53,24 @@ zipStorePath=wrapper/dists
             flags=re.MULTILINE
         )
         # Check if anything changed
+        changed = False
         for i, (a, b) in enumerate(zip(before.splitlines(), content.splitlines())):
             if a != b:
+                changed = True
                 print(f"[bump_kotlin:{label}] L{i+1}: {a} -> {b}")
+        if not changed:
+            print(f"[bump_kotlin:{label}] NO CHANGES (pattern didn't match)")
         return content
 
-    for fn in [f"{fresh}/android/build.gradle.kts", f"{fresh}/android/build.gradle", f"{fresh}/android/settings.gradle"]:
+    # Flutter 3.29+ uses .kts (Kotlin DSL), earlier versions use .gradle (Groovy)
+    for fn in [
+        f"{fresh}/android/settings.gradle.kts",
+        f"{fresh}/android/settings.gradle",
+        f"{fresh}/android/build.gradle.kts",
+        f"{fresh}/android/build.gradle",
+        f"{fresh}/android/app/build.gradle.kts",
+        f"{fresh}/android/app/build.gradle",
+    ]:
         if os.path.exists(fn):
             with open(fn) as f:
                 content = f.read()
@@ -76,13 +94,24 @@ zipStorePath=wrapper/dists
 
     # Print debug info about generated files
     print("=== Generated android/ files ===")
-    for fn in sorted(os.listdir(f"{fresh}/android")):
-        print(f"  {fn}")
-    for fn in [f"{fresh}/android/settings.gradle", f"{fresh}/android/build.gradle.kts", f"{fresh}/android/app/build.gradle.kts", toml]:
+    for root, dirs, files in os.walk(f"{fresh}/android"):
+        rel = os.path.relpath(root, fresh)
+        for fn in sorted(files):
+            if fn.endswith(".gradle") or fn.endswith(".kts") or fn in ("gradle.properties", "libs.versions.toml"):
+                print(f"  {rel}/{fn}")
+    for fn in [
+        f"{fresh}/android/settings.gradle.kts",
+        f"{fresh}/android/settings.gradle",
+        f"{fresh}/android/build.gradle.kts",
+        f"{fresh}/android/app/build.gradle.kts",
+        f"{fresh}/android/gradle/libs.versions.toml",
+    ]:
         if os.path.exists(fn):
             with open(fn) as f:
-                print(f"--- {fn} ---")
-                print(f.read())
+                content = f.read()
+            print(f"--- {fn} ---")
+            print(content)
+            print(f"--- end {fn} ---")
 
     # Global init script as safety net for Flutter SDK internal Gradle files
     gradle_home = os.path.expanduser("~/.gradle")
