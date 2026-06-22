@@ -614,19 +614,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _toggleTerrain() {
     setState(() => _showTerrain = !_showTerrain);
-    if (_mapController != null && _mapReady) {
-      _applyTerrain(_showTerrain);
-    }
   }
 
   Future<void> _applyTerrain(bool enable) async {
-    try {
-      if (enable) {
-        await _mapController!.style.setTerrain(Terrain(sourceId: 'mapbox-dem'));
-      } else {
-        await _mapController!.style.removeTerrain();
-      }
-    } catch (_) {}
+    // Not supported in mapbox_maps_flutter 2.25.0
   }
 
   void _toggleGlobe() {
