@@ -11,7 +11,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cirruslabs/flutter:stable
+      # Pin to 3.29.2 — 'stable' tag auto-updates and breaks Gradle/AGP compat
+      image: ghcr.io/cirruslabs/flutter:3.29.2
 
     steps:
       - uses: actions/checkout@v4
