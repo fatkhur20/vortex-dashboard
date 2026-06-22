@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
+import 'package:vortex_dashboard/models/activity.dart';
 import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';

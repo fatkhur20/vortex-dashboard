@@ -33,7 +33,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       drawer: const SideDrawer(),
       body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: _buildBottomNav(),
-      floatingActionButton: _currentIndex == 2 ? _buildQuickActionsSheet() : null,
     );
   }
 
