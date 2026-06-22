@@ -411,7 +411,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 Navigator.pop(ctx);
                 final gf = Geofence(
                   id: const Uuid().v4(), name: name, type: GeofenceType.custom,
-                  latitude: lat, longitude: lng, radiusMeters: radiusMeters,
+                  latitude: lat, longitude: lng, radiusMeters: radiusMeters.toDouble(),
                 );
                 await ref.read(geofenceListProvider.notifier).add(gf);
                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(

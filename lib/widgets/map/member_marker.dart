@@ -100,7 +100,7 @@ class MemberMapMarker extends StatelessWidget {
       icon = Icons.battery_std;
       col = const Color(0xFFFFC107);
     } else if (level > 20) {
-      icon = Icons.battery_30;
+      icon = Icons.battery_unknown;
       col = const Color(0xFFFF9800);
     } else {
       icon = Icons.battery_alert;

@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/models/gps_data.dart';
+import 'package:vortex_dashboard/models/geofence.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
 import 'package:vortex_dashboard/models/activity.dart';
 import 'package:vortex_dashboard/providers/compass_provider.dart';
