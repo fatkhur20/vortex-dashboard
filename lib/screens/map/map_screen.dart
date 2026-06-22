@@ -688,7 +688,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   List<Widget> _buildMemberMarkers() {
     if (!_mapReady || !_showMembers) return [];
     final widgets = <Widget>[];
+    final myId = ref.read(userIdProvider);
     for (final entry in _memberScreenPos.entries) {
+      if (entry.key == myId) continue; // skip self—rendered as UserMapMarker
       final pos = entry.value;
       final member = ref.read(activeGroupMembersProvider).where((m) => m.id == entry.key).firstOrNull;
       if (member == null) continue;
