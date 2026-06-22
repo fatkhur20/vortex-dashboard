@@ -17,48 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate fresh project
-        run: |
-          flutter create --org com.vortex --project-name vortex_dashboard --platforms android fresh
-          # Pin Gradle to 8.7+ and add Kotlin DSL plugin repository
-          cat > fresh/android/gradle/wrapper/gradle-wrapper.properties << 'WRAPEOF'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-WRAPEOF
-          # Add Gradle Plugin Portal to project settings
-          cat > fresh/android/settings.gradle.kts << 'SETTINGSEOF'
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-rootProject.name = "vortex_dashboard"
-include(":app")
-SETTINGSEOF
-          # Global init script for Flutter SDK internal Gradle files
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/init.gradle << 'INITEOF'
-settingsEvaluated { settings ->
-    settings.pluginManagement {
-        repositories {
-            google()
-            mavenCentral()
-            gradlePluginPortal()
-        }
-    }
-}
-INITEOF
+        run: python3 .github/workflows/setup_fresh.py fresh
 
       - name: Generate app icon
         run: |
