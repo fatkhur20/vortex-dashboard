@@ -15,7 +15,7 @@ def main():
     with open(f"{fresh}/android/gradle/wrapper/gradle-wrapper.properties", "w") as f:
         f.write("""distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-9.1-bin.zip
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.13-bin.zip
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 """)
