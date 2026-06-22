@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/geofence.dart';
+import 'package:vortex_dashboard/providers/geofence_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';
@@ -328,10 +331,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) return;
               Navigator.pop(ctx);
+              final gf = Geofence(
+                id: const Uuid().v4(), name: name, type: GeofenceType.custom,
+                latitude: lat, longitude: lng, radiusMeters: 100,
+              );
+              await ref.read(geofenceListProvider.notifier).add(gf);
               if (mounted) ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Saved "$name"'), duration: Duration(seconds: 2)),
               );
@@ -347,6 +355,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final loc = ref.read(currentLocationProvider);
     final lat = loc['lat'] ?? 0.0;
     final lng = loc['lng'] ?? 0.0;
+    final nameCtrl = TextEditingController();
     int radiusMeters = 250;
 
     showDialog(
@@ -362,6 +371,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             children: [
               Text('Location: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
                   style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Label (e.g. Home, Work)', hintStyle: TextStyle(color: Colors.white38),
+                  filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
               const SizedBox(height: 16),
               const Text('Radius', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 8),
@@ -385,10 +405,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
                 Navigator.pop(ctx);
+                final gf = Geofence(
+                  id: const Uuid().v4(), name: name, type: GeofenceType.custom,
+                  latitude: lat, longitude: lng, radiusMeters: radiusMeters,
+                );
+                await ref.read(geofenceListProvider.notifier).add(gf);
                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Geofence created (${radiusMeters}m)'), duration: Duration(seconds: 2)),
+                  SnackBar(content: Text('Geofence "$name" (${radiusMeters}m)'), duration: Duration(seconds: 2)),
                 );
               },
               child: const Text('Save', style: TextStyle(color: ThemeConstants.primaryColor)),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -13,6 +14,8 @@ import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/activity_provider.dart';
 import 'package:vortex_dashboard/providers/geofence_provider.dart';
+import 'package:vortex_dashboard/services/geofence_service.dart';
+import 'package:vortex_dashboard/services/notification_service.dart';
 import 'package:vortex_dashboard/services/heatmap_service.dart';
 import 'package:vortex_dashboard/widgets/map/map_enums.dart';
 import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
@@ -85,11 +88,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   List<GeofenceRenderData> _geofenceRenderData = [];
   String? _activeGeofenceId;
   String? _activeGeofenceLabel;
+  StreamSubscription<GeofenceEvent>? _geofenceEventSub;
 
   @override
   void initState() {
     super.initState();
     _loadSavedStyle();
+    _geofenceEventSub = GeofenceService().eventStream.listen(_onGeofenceEvent);
     _mapReadyTimeout = Timer(const Duration(seconds: 20), () {
       if (!_mapReady && mounted) {
         setState(() {
@@ -128,12 +133,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await prefs.setString('mapStyle', style.name);
   }
 
+  void _onGeofenceEvent(GeofenceEvent event) {
+    if (event.isEntry) {
+      notificationService.addArrival('You', event.geofenceName);
+    } else {
+      notificationService.addDeparture('You', event.geofenceName);
+    }
+  }
+
   @override
   void dispose() {
     _screenPosTimer?.cancel();
     _mapReadyTimeout?.cancel();
     _fpsTimer?.cancel();
     _geofenceTimer?.cancel();
+    _geofenceEventSub?.cancel();
     super.dispose();
   }
 
@@ -331,6 +345,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             insideLabel = gf.name;
           }
         } catch (_) {}
+      }
+      if (loc['lat'] != 0 && loc['lng'] != 0) {
+        GeofenceService().checkGeofences(loc['lat']!, loc['lng']!);
       }
       if (mounted) {
         setState(() {

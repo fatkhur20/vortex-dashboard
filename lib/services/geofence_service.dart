@@ -20,13 +20,6 @@ class GeofenceService {
     final data = storage.getBox('geofences');
     if (data != null && data.isNotEmpty) {
       _geofences = data.values.map((e) => Geofence.fromJson(Map<String, dynamic>.from(e))).toList();
-    } else {
-      _geofences = [
-        Geofence(id: 'home', name: 'Home', type: GeofenceType.home,
-                 latitude: -6.2088, longitude: 106.8456, radiusMeters: 200),
-        Geofence(id: 'office', name: 'Office', type: GeofenceType.office,
-                 latitude: -6.2, longitude: 106.82, radiusMeters: 150),
-      ];
     }
   }
 
