@@ -130,15 +130,15 @@ class TrackingService {
     _membersController.add(members);
   }
 
-  void startSync(Ref ref, {required String groupId}) {
+  void startSync(dynamic ref, {required String groupId}) {
     _activeGroupId = groupId;
     _uploadTimer = Timer.periodic(const Duration(seconds: 10), (_) => _uploadLocation(ref));
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), () => _pollMembers(ref));
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _pollMembers(ref));
     refreshGroups();
     refreshMembers();
   }
 
-  void _uploadLocation(Ref ref) {
+  void _uploadLocation(dynamic ref) {
     if (_activeGroupId == null || _currentUser == null) return;
     final loc = ref.read(currentLocationProvider);
     final lat = loc['lat'] ?? 0.0;
@@ -156,7 +156,7 @@ class TrackingService {
     ).catchError((_) {});
   }
 
-  void _pollMembers(Ref ref) {
+  void _pollMembers(dynamic ref) {
     if (_activeGroupId == null) return;
     _api.getGroupLocations(_activeGroupId!).then((members) {
       _membersController.add(members);

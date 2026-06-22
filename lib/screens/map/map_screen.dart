@@ -197,17 +197,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       minLng = loc['lng']!;
       maxLng = loc['lng']!;
       for (final m in members) {
+        if (m.latitude == null || m.longitude == null) continue;
         if (m.latitude == 0 && m.longitude == 0) continue;
-        minLat = min(minLat, m.latitude);
-        maxLat = max(maxLat, m.latitude);
-        minLng = min(minLng, m.longitude);
-        maxLng = max(maxLng, m.longitude);
+        minLat = min(minLat, m.latitude!);
+        maxLat = max(maxLat, m.latitude!);
+        minLng = min(minLng, m.longitude!);
+        maxLng = max(maxLng, m.longitude!);
       }
     } else if (members.isNotEmpty) {
-      minLat = members.first.latitude - 0.01;
-      maxLat = members.first.latitude + 0.01;
-      minLng = members.first.longitude - 0.01;
-      maxLng = members.first.longitude + 0.01;
+      final lat = members.first.latitude ?? 0.0;
+      final lng = members.first.longitude ?? 0.0;
+      minLat = lat - 0.01;
+      maxLat = lat + 0.01;
+      minLng = lng - 0.01;
+      maxLng = lng + 0.01;
     } else {
       minLat = loc['lat']! - 0.01;
       maxLat = loc['lat']! + 0.01;
@@ -385,10 +388,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         if (_showMembers) {
           final newPos = <String, Map<String, double>>{};
           for (final m in members) {
+            if (m.latitude == null || m.longitude == null) continue;
             if (m.latitude == 0 && m.longitude == 0) continue;
             try {
               final screen = await _mapController!.pixelForCoordinate(
-                Point(coordinates: Position(m.longitude, m.latitude)),
+                Point(coordinates: Position(m.longitude!, m.latitude!)),
               );
               newPos[m.id] = {'x': screen.x, 'y': screen.y};
             } catch (_) {}
@@ -560,7 +564,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _MemberProfileSheet(member: member, onLocate: () {
         Navigator.pop(context);
-        _focusOnMember(member.latitude, member.longitude);
+        _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
       }),
     );
   }
@@ -628,16 +632,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _toggleGlobe() {
     setState(() => _showGlobe = !_showGlobe);
     if (_mapController != null && _mapReady) {
-      _applyProjection(_showGlobe);
+      _tryApplyProjection(_showGlobe);
     }
   }
 
-  Future<void> _applyProjection(bool globe) async {
+  Future<void> _tryApplyProjection(bool globe) async {
     try {
       if (globe) {
-        await _mapController!.setProjection(Projection(name: 'globe'));
-      } else {
-        await _mapController!.setProjection(const Projection(name: 'mercator'));
+        await _mapController!.setCamera(CameraOptions(
+          center: Point(coordinates: Position(106.8456, -6.2088)),
+          zoom: 3,
+          pitch: 30,
+        ));
       }
     } catch (_) {}
   }
@@ -703,7 +709,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             activityEmoji: _getActivityEmoji(member.activity),
             isMe: isMe,
             onTap: () {
-              _focusOnMember(member.latitude, member.longitude);
+              _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
               _showMemberProfile(member);
             },
           ),
@@ -987,7 +993,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   members: otherMembers,
                   memberCount: members.length,
                   onMemberTap: (m) {
-                    _focusOnMember(m.latitude, m.longitude);
+                    _focusOnMember(m.latitude ?? 0, m.longitude ?? 0);
                     _showMemberProfile(m);
                   },
                 ),
@@ -1144,7 +1150,7 @@ class _MemberProfileSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _stat(Icons.speed, '${member.speed.toStringAsFixed(1)} km/h'),
-              _stat(Icons.battery, '${member.battery}%'),
+              _stat(Icons.battery_charging_full, '${member.battery?.toInt() ?? 0}%'),
               _stat(Icons.directions_walk, member.activity),
             ],
           ),

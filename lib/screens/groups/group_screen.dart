@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/group_info.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';
@@ -198,7 +199,7 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
               decoration: InputDecoration(
                 counterText: '',
                 hintText: '------',
-                hintStyle: TextStyle(color: Colors.white15, fontSize: 28, letterSpacing: 8),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.15), fontSize: 28, letterSpacing: 8),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),

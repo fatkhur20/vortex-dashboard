@@ -2,65 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 import 'package:vortex_dashboard/widgets/map/map_enums.dart';
 
-class MapStyleSheet extends StatelessWidget {
-  final MapStyleLabel currentStyle;
-  final ValueChanged<MapStyleLabel> onStyleChanged;
-
-  const MapStyleSheet({
-    super.key,
-    required this.currentStyle,
-    required this.onStyleChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(50),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Map Style',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...MapStyleLabel.values.map(
-                (style) => _StyleSheetItem(
-                  style: style,
-                  active: currentStyle == style,
-                  onTap: () {
-                    onStyleChanged(style);
-                    Navigator.pop(ctx);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+class MapStyleSheet {
   static void show(
     BuildContext context, {
     required MapStyleLabel currentStyle,

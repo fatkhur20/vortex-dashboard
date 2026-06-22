@@ -26,9 +26,9 @@ class BottomInfoBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accColor = accuracyColor ??
-        (double.tryParse(accuracy) ?? 99) < 10
+        (((double.tryParse(accuracy) ?? 99) < 10)
             ? ThemeConstants.successColor
-            : ThemeConstants.warningColor;
+            : ThemeConstants.warningColor);
 
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
