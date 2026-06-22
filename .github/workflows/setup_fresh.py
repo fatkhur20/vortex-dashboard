@@ -22,22 +22,27 @@ zipStorePath=wrapper/dists
 
     # Bump Kotlin plugin version for plugin compatibility
     import re
-    for fn in [f"{fresh}/android/build.gradle.kts", f"{fresh}/android/build.gradle"]:
+
+    def bump_kotlin(content):
+        # Kotlin DSL: id("org.jetbrains.kotlin.android") version "X.Y.Z" apply false
+        content = re.sub(
+            r'(id\s*["\']org\.jetbrains\.kotlin\.android["\']\s+version\s+["\'])\d+\.\d+\.\d+(["\'])',
+            r'\g<1>2.1.0\g<2>',
+            content
+        )
+        # Groovy: ext.kotlin_version = 'X.Y.Z'
+        content = re.sub(
+            r"(ext\.kotlin_version\s*=\s*['\"])\d+\.\d+\.\d+(['\"])",
+            r"\g<1>2.1.0\g<2>",
+            content
+        )
+        return content
+
+    for fn in [f"{fresh}/android/build.gradle.kts", f"{fresh}/android/build.gradle", f"{fresh}/android/settings.gradle"]:
         if os.path.exists(fn):
             with open(fn) as f:
                 content = f.read()
-            # Kotlin DSL: id("org.jetbrains.kotlin.android") version "X.Y.Z"
-            content = re.sub(
-                r'(id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+")\d+\.\d+\.\d+(")',
-                r'\g<1>2.1.0\g<2>',
-                content
-            )
-            # Groovy: ext.kotlin_version = 'X.Y.Z'
-            content = re.sub(
-                r"(ext\.kotlin_version\s*=\s*')\d+\.\d+\.\d+(')",
-                r"\g<1>2.1.0\g<2>",
-                content
-            )
+            content = bump_kotlin(content)
             with open(fn, "w") as f:
                 f.write(content)
 
