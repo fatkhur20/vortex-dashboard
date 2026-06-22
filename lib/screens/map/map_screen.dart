@@ -687,43 +687,68 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   List<Widget> _buildMemberMarkers() {
     if (!_mapReady || !_showMembers) return [];
-    final widgets = <Widget>[];
     final myId = ref.read(userIdProvider);
+    final members = <String, MemberInfo>{};
     for (final entry in _memberScreenPos.entries) {
-      if (entry.key == myId) continue; // skip self—rendered as UserMapMarker
-      final pos = entry.value;
-      final member = ref.read(activeGroupMembersProvider).where((m) => m.id == entry.key).firstOrNull;
-      if (member == null) continue;
-      final isMe = member.id == ref.read(userIdProvider);
-      widgets.add(
-        Positioned(
-          left: pos['x']! - 40,
-          top: pos['y']! - 40,
-          child: MemberMapMarker(
-            memberName: member.displayName,
-            activityEmoji: _getActivityEmoji(member.activity),
-            isMe: isMe,
-            onTap: () {
-              _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-              _showMemberProfile(member);
-            },
+      if (entry.key == myId) continue;
+      final m = ref.read(activeGroupMembersProvider).where((x) => x.id == entry.key).firstOrNull;
+      if (m != null) members[entry.key] = m;
+    }
+    if (members.isEmpty) return [];
+
+    final widgets = <Widget>[];
+    final posGroups = <String, List<MapEntry<String, MemberInfo>>>{};
+    for (final m in members.entries) {
+      final pos = _memberScreenPos[m.key]!;
+      final key = '${pos['x']!.toStringAsFixed(0)},${pos['y']!.toStringAsFixed(0)}';
+      posGroups.putIfAbsent(key, () => []).add(MapEntry(m.key, m.value));
+    }
+
+    for (final group in posGroups.values) {
+      final count = group.length;
+      for (var i = 0; i < count; i++) {
+        final entry = group[i];
+        final pos = _memberScreenPos[entry.key]!;
+        final member = entry.value;
+        double ox = 0, oy = 0;
+        if (count > 1) {
+          final angle = (360 / count * i) * (3.14159 / 180);
+          ox = (count > 2 ? 48 : 40) * cos(angle);
+          oy = (count > 2 ? 48 : 40) * sin(angle);
+        }
+        final x = pos['x']! + ox;
+        final y = pos['y']! + oy;
+        widgets.add(
+          Positioned(
+            left: x - 22, top: y - 22,
+            child: MemberMapMarker(
+              memberId: member.id,
+              memberName: member.displayName,
+              activityEmoji: _getActivityEmoji(member.activity),
+              battery: member.battery,
+              onTap: () {
+                _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
+                _showMemberProfile(member);
+              },
+            ),
           ),
-        ),
-      );
-      widgets.add(
-        Positioned(
-          left: pos['x']! - 50,
-          top: pos['y']! + 24,
-          child: MemberStatusLabel(
-            presence: member.presence,
-            speed: member.speed,
-            activity: member.activity,
+        );
+        widgets.add(
+          Positioned(
+            left: x - 28, top: y + 24,
+            child: MemberStatusLabel(
+              presence: member.presence,
+              speed: member.speed,
+              activity: member.activity,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
     return widgets;
   }
+
+
 
   @override
   Widget build(BuildContext context) {
