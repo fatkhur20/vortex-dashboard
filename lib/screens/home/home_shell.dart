@@ -183,14 +183,57 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) return;
               Navigator.pop(ctx);
-              await ref.read(groupActionsProvider).create(name);
+              final g = await ref.read(groupActionsProvider).create(name);
+              final invite = await ref.read(groupActionsProvider).createInvite(g.id);
+              final code = invite['code'] as String? ?? invite['invite_code'] as String? ?? '--';
               ref.read(groupActionsProvider).refresh();
               setState(() => _currentIndex = 1);
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Group created'), duration: Duration(seconds: 2)),
-              );
+              if (mounted) _showInviteCode(code);
             },
             child: const Text('Create', style: TextStyle(color: ThemeConstants.primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInviteCode(String code) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.darkBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Invite Code', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Share this code with friends to join your group:',
+                style: TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(code,
+                  style: TextStyle(
+                    fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: 8,
+                    color: ThemeConstants.primaryColor,
+                  )),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Code copied to clipboard')),
+              );
+            },
+            child: const Text('Copy', style: TextStyle(color: ThemeConstants.primaryColor)),
           ),
         ],
       ),
