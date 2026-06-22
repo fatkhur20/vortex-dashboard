@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/group_info.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 import 'package:vortex_dashboard/screens/map/map_screen.dart';

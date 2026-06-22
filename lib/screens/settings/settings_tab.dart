@@ -100,7 +100,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
                   themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
                   'Dark Theme',
                   themeMode == ThemeMode.dark,
-                  (v) => ref.read(themeModeProvider.notifier).toggle(),
+                  (v) => ref.read(themeModeProvider.notifier).state = v ? ThemeMode.dark : ThemeMode.light,
                 ),
               ],
             ),
