@@ -27,7 +27,8 @@ import 'package:vortex_dashboard/widgets/map/status_bar.dart';
 import 'package:vortex_dashboard/widgets/map/bottom_info_bar.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
-  const MapScreen({super.key});
+  final bool isEmbeddedInShell;
+  const MapScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   ConsumerState<MapScreen> createState() => _MapScreenState();
@@ -749,11 +750,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           _exitFocusMode();
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        extendBodyBehindAppBar: true,
-        body: Stack(
-          children: [
+      child: widget.isEmbeddedInShell
+          ? _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo, compassHeading)
+          : Scaffold(
+              backgroundColor: Colors.black,
+              extendBodyBehindAppBar: true,
+              body: _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo, compassHeading),
+            ),
+    );
+  }
+
+  Widget _buildMapContent(BuildContext context, double heading, GpsData? gpsData, double speed, double gpsH, ActivityData? activity, List<MemberInfo> members, List<MemberInfo> otherMembers, String? uid, MemberInfo? me, String activityLabel, String activityEmoji, String lastUpdateAgo, double compassHeading) {
+    final screenPad = MediaQuery.of(context).padding;
+    return Stack(
+      children: [
             MapWidget(
               cameraOptions: CameraOptions(
                 center: Point(coordinates: Position(_defaultLng, _defaultLat)),
@@ -816,46 +826,39 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
             ..._buildMemberMarkers(),
 
-            if (_showDebug && _mapReady)
+            if (widget.isEmbeddedInShell)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 52,
-                left: 16,
-                child: DebugPanel(
-                  entries: [
-                    DebugInfo('Ready', 'YES'),
-                    DebugInfo('Zoom', _currentZoom.toStringAsFixed(1)),
-                    DebugInfo('Bearing', '${_currentBearing.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('Pitch', '${_currentPitch.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('FPS', '${_renderFps.toStringAsFixed(0)}'),
-                    DebugInfo('GPS H.', gpsH >= 0 ? '${gpsH.toStringAsFixed(0)}\u{00B0}' : '---'),
-                    DebugInfo('Compass', '${compassHeading.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('Active', '${heading.toStringAsFixed(0)}\u{00B0} ${_headingDir(heading)}'),
-                    DebugInfo('Source', _headingSourceLabel(speed, gpsH, compassHeading)),
-                    DebugInfo('Speed', '${speed.toStringAsFixed(1)} km/h'),
-                    DebugInfo('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
-                    DebugInfo('Activity', activityLabel),
-                    DebugInfo('Group', '${members.length} members'),
-                    DebugInfo('3D', _show3D ? 'ON' : 'OFF'),
-                    DebugInfo('Heatmap', _heatmapLoaded ? '${_heatmapPoints.length}pts' : '...'),
-                    DebugInfo('Mode', _cameraMode.name),
-                    DebugInfo('Style', _mapStyle.label),
-                    if (_activeGeofenceLabel != null) DebugInfo('Geofence', _activeGeofenceLabel!),
-                    if (_focusMode) DebugInfo('Focus', 'ON'),
-                  ],
-                  errorMessage: _mapError ? _mapErrorMessage : null,
+                top: screenPad.top + 8,
+                left: 12,
+                child: GestureDetector(
+                  onTap: () => Scaffold.of(context).openDrawer(),
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF0D0D0D).withAlpha(200),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Center(
+                      child: Text(activityEmoji, style: const TextStyle(fontSize: 20)),
+                    ),
+                  ),
                 ),
               ),
 
-            if (_showDebug && !_mapReady)
+            // Compact status pills
+            if (_mapReady && widget.isEmbeddedInShell)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 52,
-                left: 16,
-                child: DebugPanel(entries: [DebugInfo('Ready', 'NO')]),
+                top: screenPad.top + 8,
+                left: 60,
+                right: 60,
+                child: _buildStatusPills(gpsData, members.length, lastUpdateAgo),
               ),
 
-            if (_mapReady)
+            // Full status bar for standalone mode
+            if (_mapReady && !widget.isEmbeddedInShell)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
+                top: screenPad.top + 12,
                 left: 60,
                 right: 60,
                 child: MapStatusBar(
@@ -870,7 +873,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
             if (_mapReady && _activeGeofenceLabel != null && _activeGeofenceId != null)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 60,
+                top: screenPad.top + 60,
                 left: 64,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -896,8 +899,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
 
+            // Map layers button (left side)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 56,
+              top: screenPad.top + 56,
               left: 16,
               child: MapButton(
                 icon: Icons.layers,
@@ -907,8 +911,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
+            // Right side action buttons
             Positioned(
-              top: MediaQuery.of(context).padding.top + 56,
+              top: screenPad.top + 56,
               right: 16,
               child: Column(
                 children: [
@@ -937,20 +942,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     active: _show3D,
                     tooltip: '3D View',
                   ),
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: Icons.landscape,
-                    onPressed: _mapReady ? _toggleTerrain : null,
-                    active: _showTerrain,
-                    tooltip: 'Terrain',
-                  ),
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: Icons.public,
-                    onPressed: _mapReady ? _toggleGlobe : null,
-                    active: _showGlobe,
-                    tooltip: 'Globe',
-                  ),
+                  if (widget.isEmbeddedInShell) ...[
+                    const SizedBox(height: 6),
+                    MapButton(
+                      icon: Icons.landscape,
+                      onPressed: _mapReady ? _toggleTerrain : null,
+                      active: _showTerrain,
+                      tooltip: 'Terrain',
+                    ),
+                    const SizedBox(height: 6),
+                    MapButton(
+                      icon: Icons.public,
+                      onPressed: _mapReady ? _toggleGlobe : null,
+                      active: _showGlobe,
+                      tooltip: 'Globe',
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   MapButton(
                     icon: Icons.fireplace,
@@ -965,21 +972,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     active: true,
                     tooltip: 'SOS Emergency',
                   ),
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: _showDebug ? Icons.bug_report : Icons.bug_report_outlined,
-                    onPressed: () => setState(() => _showDebug = !_showDebug),
-                    active: _showDebug,
-                    tooltip: 'Debug',
-                  ),
                 ],
               ),
             ),
 
+            // Floating member card
             if (_mapReady && otherMembers.isNotEmpty && _showMembers)
               Positioned(
                 left: 16,
-                top: MediaQuery.of(context).padding.top + 100,
+                top: widget.isEmbeddedInShell ? screenPad.top + 56 : screenPad.top + 104,
                 child: FloatingMembersCard(
                   members: otherMembers,
                   memberCount: members.length,
@@ -990,9 +991,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
 
+            // Bottom right controls
             Positioned(
               right: 16,
-              bottom: 200,
+              bottom: widget.isEmbeddedInShell ? 100 : 200,
               child: Column(
                 children: [
                   MapButton(
@@ -1035,20 +1037,61 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 16,
-              child: BottomInfoBar(
-                distance: '12.3',
-                altitude: '${(gpsData?.altitude ?? 0).toStringAsFixed(0)}',
-                heading: heading.toStringAsFixed(0),
-                headingDir: _headingDir(heading),
-                accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}',
-                memberCount: members.length,
+            // Bottom info bar (standalone only)
+            if (!widget.isEmbeddedInShell)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: screenPad.bottom + 16,
+                child: BottomInfoBar(
+                  distance: '12.3',
+                  altitude: '${(gpsData?.altitude ?? 0).toStringAsFixed(0)}',
+                  heading: heading.toStringAsFixed(0),
+                  headingDir: _headingDir(heading),
+                  accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}',
+                  memberCount: members.length,
+                ),
               ),
-            ),
 
+            // Debug panel (hidden in shell mode)
+            if (!widget.isEmbeddedInShell && _showDebug && _mapReady)
+              Positioned(
+                top: screenPad.top + 52,
+                left: 16,
+                child: DebugPanel(
+                  entries: [
+                    DebugInfo('Ready', 'YES'),
+                    DebugInfo('Zoom', _currentZoom.toStringAsFixed(1)),
+                    DebugInfo('Bearing', '${_currentBearing.toStringAsFixed(0)}\u{00B0}'),
+                    DebugInfo('Pitch', '${_currentPitch.toStringAsFixed(0)}\u{00B0}'),
+                    DebugInfo('FPS', '${_renderFps.toStringAsFixed(0)}'),
+                    DebugInfo('GPS H.', gpsH >= 0 ? '${gpsH.toStringAsFixed(0)}\u{00B0}' : '---'),
+                    DebugInfo('Compass', '${compassHeading.toStringAsFixed(0)}\u{00B0}'),
+                    DebugInfo('Active', '${heading.toStringAsFixed(0)}\u{00B0} ${_headingDir(heading)}'),
+                    DebugInfo('Source', _headingSourceLabel(speed, gpsH, compassHeading)),
+                    DebugInfo('Speed', '${speed.toStringAsFixed(1)} km/h'),
+                    DebugInfo('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
+                    DebugInfo('Activity', activityLabel),
+                    DebugInfo('Group', '${members.length} members'),
+                    DebugInfo('3D', _show3D ? 'ON' : 'OFF'),
+                    DebugInfo('Heatmap', _heatmapLoaded ? '${_heatmapPoints.length}pts' : '...'),
+                    DebugInfo('Mode', _cameraMode.name),
+                    DebugInfo('Style', _mapStyle.label),
+                    if (_activeGeofenceLabel != null) DebugInfo('Geofence', _activeGeofenceLabel!),
+                    if (_focusMode) DebugInfo('Focus', 'ON'),
+                  ],
+                  errorMessage: _mapError ? _mapErrorMessage : null,
+                ),
+              ),
+
+            if (!widget.isEmbeddedInShell && _showDebug && !_mapReady)
+              Positioned(
+                top: screenPad.top + 52,
+                left: 16,
+                child: DebugPanel(entries: [DebugInfo('Ready', 'NO')]),
+              ),
+
+            // Loading/error overlay
             if (!_mapReady || _mapError)
               Positioned.fill(
                 child: Container(
@@ -1084,7 +1127,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
           ],
-        ),
+        );
+  }
+
+  Widget _buildStatusPills(GpsData? gpsData, int memberCount, String lastUpdateAgo) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D0D).withAlpha(220),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.gps_fixed, size: 12, color: Color(0xFF00E676)),
+          const SizedBox(width: 4),
+          Text('${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}m', style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          const Icon(Icons.people, size: 12, color: Color(0xFF448AFF)),
+          const SizedBox(width: 4),
+          Text('$memberCount', style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF00E676))),
+          const SizedBox(width: 4),
+          const Text('Live', style: TextStyle(fontSize: 11, color: Color(0xFF00E676), fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
