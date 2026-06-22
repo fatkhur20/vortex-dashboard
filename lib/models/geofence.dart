@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+
 enum GeofenceType { home, office, school, custom }
 
 class Geofence {
@@ -26,6 +29,47 @@ class Geofence {
     DateTime? createdAt,
     this.customIcon,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  Color get typeColor {
+    switch (type) {
+      case GeofenceType.home:
+        return const Color(0xFF00E5FF);
+      case GeofenceType.office:
+        return const Color(0xFF7C4DFF);
+      case GeofenceType.school:
+        return const Color(0xFF00E676);
+      case GeofenceType.custom:
+        return const Color(0xFFFF4081);
+    }
+  }
+
+  List<List<double>> _circleCoords() {
+    const numPoints = 48;
+    final coords = <List<double>>[];
+    for (int i = 0; i <= numPoints; i++) {
+      final angle = 2 * math.pi * i / numPoints;
+      final dLat = radiusMeters * math.cos(angle) / 111320.0;
+      final dLng = radiusMeters * math.sin(angle) / (111320.0 * math.cos(latitude * math.pi / 180));
+      coords.add([longitude + dLng, latitude + dLat]);
+    }
+    return coords;
+  }
+
+  Map<String, dynamic> toGeoJsonFeature() {
+    return {
+      'type': 'Feature',
+      'properties': {
+        'id': id,
+        'name': name,
+        'type': type.name,
+        'radius': radiusMeters,
+      },
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [_circleCoords()],
+      },
+    };
+  }
 
   bool isInside(double lat, double lng) {
     return _haversine(lat, lng, latitude, longitude) * 1000 <= radiusMeters;

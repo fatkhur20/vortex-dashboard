@@ -28,6 +28,12 @@ class AppConstants {
   static const String storageKeyEmergencyContact = 'emergency_contact';
   static const String storageKeyBackgroundTracking = 'background_tracking';
 
+  static const String storageKeyWorkerUrl = 'couple_worker_url';
+  static const String storageKeyCoupleUserId = 'couple_user_id';
+  static const String storageKeyCouplePartnerId = 'couple_partner_id';
+  static const String storageKeyCoupleEnabled = 'couple_enabled';
+  static const String storageKeyCoupleDeviceId = 'couple_device_id';
+
   static const String tripAKey = 'trip_a_distance';
   static const String tripBKey = 'trip_b_distance';
   static const String odometerKey = 'odometer_total';

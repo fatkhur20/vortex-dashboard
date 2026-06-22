@@ -1,98 +1,122 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortex_dashboard/models/ride_model.dart';
-import 'package:vortex_dashboard/services/location_tracking_service.dart';
+import 'package:vortex_dashboard/models/group_info.dart';
+import 'package:vortex_dashboard/models/member_info.dart';
+import 'package:vortex_dashboard/models/user_profile.dart';
+import 'package:vortex_dashboard/providers/gps_provider.dart';
+import 'package:vortex_dashboard/services/tracking_service.dart';
+import 'package:vortex_dashboard/services/life_tracker_api_service.dart';
 
-final trackingServiceProvider = Provider<LocationTrackingService>((ref) {
-  final service = LocationTrackingService();
-  ref.onDispose(() => service.dispose());
-  return service;
+final trackingServiceProvider = Provider<TrackingService>((ref) {
+  final svc = TrackingService();
+  ref.onDispose(() => svc.dispose());
+  return svc;
 });
 
-final trackingStateProvider =
-    StateNotifierProvider<TrackingStateNotifier, TrackingState>((ref) {
-  return TrackingStateNotifier(ref);
+final apiServiceProvider = Provider<LifeTrackerApiService>((_) => LifeTrackerApiService());
+
+final userInitializedProvider = FutureProvider<bool>((ref) async {
+  final svc = ref.read(trackingServiceProvider);
+  await svc.initialize();
+  return true;
 });
 
-final trackingIsActiveProvider = Provider<bool>((ref) {
-  return ref.watch(trackingStateProvider).isTracking;
+final currentUserProvider = Provider<UserProfile?>((ref) {
+  return ref.read(trackingServiceProvider).currentUser;
 });
 
-class TrackingState {
-  final bool isTracking;
-  final RideModel? currentRide;
-  final double maxSpeed;
-  final double avgSpeed;
-  final double maxAltitude;
-  final double totalDistance;
-  final List<dynamic> trackPoints;
-  final List<RideModel> rideHistory;
+final userIdProvider = Provider<String?>((ref) {
+  return ref.read(trackingServiceProvider).currentUser?.id;
+});
 
-  TrackingState({
-    this.isTracking = false,
-    this.currentRide,
-    this.maxSpeed = 0,
-    this.avgSpeed = 0,
-    this.maxAltitude = 0,
-    this.totalDistance = 0,
-    this.trackPoints = const [],
-    this.rideHistory = const [],
+final isInitializedProvider = Provider<bool>((ref) {
+  return ref.read(trackingServiceProvider).isInitialized;
+});
+
+// ── Groups ──
+
+final groupsProvider = StreamProvider<List<GroupInfo>>((ref) {
+  return ref.watch(trackingServiceProvider).groupsStream;
+});
+
+final activeGroupIdProvider = StateProvider<String?>((ref) {
+  return ref.read(trackingServiceProvider).activeGroupId;
+});
+
+final activeGroupProvider = Provider<GroupInfo?>((ref) {
+  final groupsAsync = ref.watch(groupsProvider);
+  final activeId = ref.watch(activeGroupIdProvider);
+  return groupsAsync.whenOrNull(data: (groups) {
+    if (activeId == null) return groups.isNotEmpty ? groups.first : null;
+    return groups.where((g) => g.id == activeId).firstOrNull;
   });
+});
 
-  TrackingState copyWith({
-    bool? isTracking,
-    RideModel? currentRide,
-    double? maxSpeed,
-    double? avgSpeed,
-    double? maxAltitude,
-    double? totalDistance,
-    List<dynamic>? trackPoints,
-    List<RideModel>? rideHistory,
-  }) {
-    return TrackingState(
-      isTracking: isTracking ?? this.isTracking,
-      currentRide: currentRide ?? this.currentRide,
-      maxSpeed: maxSpeed ?? this.maxSpeed,
-      avgSpeed: avgSpeed ?? this.avgSpeed,
-      maxAltitude: maxAltitude ?? this.maxAltitude,
-      totalDistance: totalDistance ?? this.totalDistance,
-      trackPoints: trackPoints ?? this.trackPoints,
-      rideHistory: rideHistory ?? this.rideHistory,
-    );
+// ── Members ──
+
+final membersProvider = StreamProvider<List<MemberInfo>>((ref) {
+  return ref.watch(trackingServiceProvider).membersStream;
+});
+
+final activeGroupMembersProvider = Provider<List<MemberInfo>>((ref) {
+  final membersAsync = ref.watch(membersProvider);
+  return membersAsync.whenOrNull(data: (m) => m) ?? [];
+});
+
+final myMemberInfoProvider = Provider<MemberInfo?>((ref) {
+  final members = ref.watch(activeGroupMembersProvider);
+  final uid = ref.watch(userIdProvider);
+  if (uid == null) return null;
+  try {
+    return members.firstWhere((m) => m.id == uid);
+  } catch (_) {
+    return null;
   }
-}
+});
 
-class TrackingStateNotifier extends StateNotifier<TrackingState> {
-  final Ref _ref;
+final otherMembersProvider = Provider<List<MemberInfo>>((ref) {
+  final members = ref.watch(activeGroupMembersProvider);
+  final uid = ref.watch(userIdProvider);
+  return members.where((m) => m.id != uid).toList();
+});
 
-  TrackingStateNotifier(this._ref) : super(TrackingState());
+// ── Location (from current user) ──
 
-  Future<void> startTracking() async {
-    final service = _ref.read(trackingServiceProvider);
-    await service.startTracking();
+final currentMemberLatLngProvider = Provider<Map<String, double>>((ref) {
+  return ref.watch(currentLocationProvider);
+});
 
-    state = state.copyWith(isTracking: true);
+// ── Connection Status ──
 
-    service.trackingStream.listen((ride) {
-      state = state.copyWith(
-        currentRide: ride,
-        maxSpeed: service.maxSpeed,
-        maxAltitude: service.maxAltitude,
-        totalDistance: service.totalDistance,
-        trackPoints: List.from(service.trackPoints),
-      );
-    });
+final connectionStatusProvider = Provider<String>((ref) {
+  final members = ref.watch(activeGroupMembersProvider);
+  final uid = ref.watch(userIdProvider);
+  if (uid == null) return 'Initializing';
+  try {
+    final me = members.firstWhere((m) => m.id == uid);
+    if (me.presence == 'online') return 'Connected';
+    if (me.presence == 'away') return 'Away';
+    return 'Offline';
+  } catch (_) {
+    return 'Connecting';
   }
+});
 
-  Future<RideModel?> stopTracking() async {
-    final service = _ref.read(trackingServiceProvider);
-    final ride = await service.stopTracking();
+// ── Group Actions ──
 
-    state = TrackingState();
+final groupActionsProvider = Provider<GroupActions>((ref) {
+  return GroupActions(ref.read(trackingServiceProvider));
+});
 
-    return ride;
-  }
+class GroupActions {
+  final TrackingService _svc;
+  GroupActions(this._svc);
 
-  void loadHistory() {
-    final repo = _ref.read(trackingServiceProvider);
-  }
+  Future<GroupInfo> create(String name) => _svc.createGroup(name);
+  Future<void> join(String code) => _svc.joinGroup(code);
+  Future<void> leave(String groupId) => _svc.leaveGroup(groupId);
+  Future<Map<String, dynamic>> createInvite(String groupId) => _svc.createInvite(groupId);
+  Future<Map<String, dynamic>> getInviteInfo(String code) => _svc.getInviteInfo(code);
+  Future<void> switchGroup(String groupId) => _svc.switchGroup(groupId);
+  Future<void> refresh() => _svc.refreshGroups();
 }

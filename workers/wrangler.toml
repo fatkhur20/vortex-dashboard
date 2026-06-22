@@ -1,0 +1,8 @@
+name = "vortex-tracker"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vortex-tracker"
+database_id = "37e1a0e8-32d6-46ec-a1e3-3a2566d31929"

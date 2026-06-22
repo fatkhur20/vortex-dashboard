@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/settings_provider.dart';
+import 'package:vortex_dashboard/screens/groups/group_screen.dart';
 import 'package:vortex_dashboard/widgets/common/section_title.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 
@@ -306,6 +308,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ref.read(crashDetectionProvider.notifier).toggle(),
           ),
 
+          const SectionTitle(title: 'Groups', icon: Icons.groups),
+          _GroupsSection(),
+
           const SectionTitle(title: 'Emergency', icon: Icons.emergency),
           GlassCard(
             padding: const EdgeInsets.all(16),
@@ -565,3 +570,107 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 }
+
+class _GroupsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groupsAsync = ref.watch(groupsProvider);
+    final activeGroup = ref.watch(activeGroupProvider);
+    final memberCount = ref.watch(activeGroupMembersProvider).length;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ThemeConstants.primaryColor.withValues(alpha: 0.1),
+                ),
+                child: Icon(Icons.groups, color: ThemeConstants.primaryColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activeGroup?.name ?? 'No Active Group',
+                      style: TextStyle(
+                        color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$memberCount member${memberCount == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45), fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          groupsAsync.when(
+            data: (groups) {
+              if (groups.isEmpty) return const SizedBox();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('My Groups', style: TextStyle(color: Colors.white38, fontSize: 12, letterSpacing: 1)),
+                  const SizedBox(height: 8),
+                  ...groups.take(5).map((g) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle, size: 6, color: g.id == activeGroup?.id
+                            ? ThemeConstants.primaryColor : Colors.white24),
+                        const SizedBox(width: 8),
+                        Text(g.name, style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        const Spacer(),
+                        Text('${g.memberCount}', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                      ],
+                    ),
+                  )),
+                ],
+              );
+            },
+            loading: () => const SizedBox(height: 20, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+            error: (_, __) => const SizedBox(),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: GlassCard.neon(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const GroupScreen(showCreate: true),
+                      ));
+                    },
+                    child: Text(
+                      'MANAGE',
+                      style: TextStyle(
+                        color: ThemeConstants.primaryColor,
+                        fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+

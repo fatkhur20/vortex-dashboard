@@ -1,7 +1,10 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
+import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
+import 'package:vortex_dashboard/screens/history/route_playback_screen.dart';
 import 'package:vortex_dashboard/widgets/glass/glass_card.dart';
 import 'package:intl/intl.dart';
 
@@ -202,6 +205,30 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     );
   }
 
+  List<GpsData> _sampleRoute() {
+    final now = DateTime.now();
+    final rng = Random(42);
+    const baseLat = -6.2088;
+    const baseLng = 106.8456;
+    final points = <GpsData>[];
+    double lat = baseLat, lng = baseLng;
+    for (int i = 0; i < 120; i++) {
+      lat += (rng.nextDouble() - 0.5) * 0.002;
+      lng += (rng.nextDouble() - 0.5) * 0.002;
+      final speed = 20 + rng.nextDouble() * 60;
+      points.add(GpsData(
+        latitude: lat,
+        longitude: lng,
+        altitude: 50 + rng.nextDouble() * 30,
+        speed: speed,
+        accuracy: 5 + rng.nextDouble() * 10,
+        heading: rng.nextDouble() * 360,
+        timestamp: now.subtract(Duration(hours: 2)).add(Duration(seconds: i * 30)),
+      ));
+    }
+    return points;
+  }
+
   Widget _buildRoutePlaybackCard() {
     return GlassCard(
       padding: const EdgeInsets.all(16),
@@ -222,18 +249,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             )),
           ]),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: ThemeConstants.primaryColor.withAlpha(20),
-              borderRadius: BorderRadius.circular(12),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => RoutePlaybackScreen(trackPoints: _sampleRoute()),
+              ));
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: ThemeConstants.primaryColor.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.play_arrow, color: ThemeConstants.primaryColor, size: 20),
+                const SizedBox(width: 8),
+                Text('Play Route', style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w600, color: ThemeConstants.primaryColor)),
+              ]),
             ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.play_arrow, color: ThemeConstants.primaryColor, size: 20),
-              const SizedBox(width: 8),
-              Text('Play Route', style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600, color: ThemeConstants.primaryColor)),
-            ]),
           ),
         ],
       ),
