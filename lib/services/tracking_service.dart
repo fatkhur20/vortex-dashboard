@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortex_dashboard/models/group_info.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
@@ -33,6 +34,8 @@ class TrackingService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  final Battery _battery = Battery();
+  double _lastBatteryLevel = 100;
   Timer? _uploadTimer;
   Timer? _pollTimer;
 
@@ -141,12 +144,16 @@ class TrackingService {
     refreshMembers();
   }
 
-  void _uploadLocation(dynamic ref) {
+  Future<void> _uploadLocation(dynamic ref) async {
     if (_activeGroupId == null || _currentUser == null) return;
     final loc = ref.read(currentLocationProvider);
     final lat = loc['lat'] ?? 0.0;
     final lng = loc['lng'] ?? 0.0;
     if (lat == 0 && lng == 0) return;
+
+    try {
+      _lastBatteryLevel = (await _battery.batteryLevel).toDouble();
+    } catch (_) {}
 
     _api.uploadLocation(
       userId: _currentUser!.id, groupId: _activeGroupId!,
@@ -154,7 +161,7 @@ class TrackingService {
       altitude: ref.read(gpsDataProvider)?.altitude ?? 0,
       speed: ref.read(currentSpeedProvider),
       heading: ref.read(compassHeadingProvider),
-      battery: 85,
+      battery: _lastBatteryLevel,
       activity: ref.read(currentActivityLabelProvider),
     ).catchError((_) {});
   }

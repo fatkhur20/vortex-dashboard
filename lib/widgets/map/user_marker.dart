@@ -9,20 +9,20 @@ class _DirectionArrow extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path();
     final w = size.width;
     final h = size.height;
 
-    path.moveTo(w / 2, h);
-    path.quadraticBezierTo(w * 0.85, h * 0.65, w * 0.68, h * 0.28);
-    path.quadraticBezierTo(w * 0.68, h * 0.06, w / 2, 0);
-    path.quadraticBezierTo(w * 0.32, h * 0.06, w * 0.32, h * 0.28);
-    path.quadraticBezierTo(w * 0.15, h * 0.65, w / 2, h);
-    path.close();
+    final path = Path()
+      ..moveTo(w / 2, 0)
+      ..lineTo(w, h)
+      ..lineTo(w * 0.65, h * 0.75)
+      ..lineTo(w * 0.35, h * 0.75)
+      ..lineTo(0, h)
+      ..close();
 
     final glow = Paint()
-      ..color = color.withAlpha(80)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
+      ..color = color.withAlpha(70)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
       ..style = PaintingStyle.fill;
     canvas.drawPath(path, glow);
 
@@ -32,7 +32,7 @@ class _DirectionArrow extends CustomPainter {
     canvas.drawPath(path, body);
 
     final edge = Paint()
-      ..color = Colors.white.withAlpha(30)
+      ..color = Colors.white.withAlpha(25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
     canvas.drawPath(path, edge);
@@ -94,6 +94,7 @@ class UserBatteryBadge extends StatelessWidget {
 
 class UserMapMarker extends StatelessWidget {
   final double heading;
+  final double arrowTurns;
   final String activityEmoji;
   final String? photoUrl;
   final double speed;
@@ -103,6 +104,7 @@ class UserMapMarker extends StatelessWidget {
   const UserMapMarker({
     super.key,
     required this.heading,
+    required this.arrowTurns,
     required this.activityEmoji,
     this.photoUrl,
     this.speed = 0,
@@ -128,7 +130,7 @@ class UserMapMarker extends StatelessWidget {
             Positioned(
               top: 0,
               child: AnimatedRotation(
-                turns: showHeading ? heading / 360 : 0,
+                turns: showHeading ? arrowTurns : 0,
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
                 child: SizedBox(

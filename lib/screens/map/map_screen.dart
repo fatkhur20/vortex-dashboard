@@ -72,6 +72,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _selectedMemberId;
   final Map<String, Offset> _prevMemberPositions = {};
   final Set<String> _expandedClusters = {};
+  double _arrowTurns = 0;
+  double _lastArrowHeading = -1;
 
   @override
   void initState() {
@@ -236,7 +238,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: 16,
+            zoom: 18,
             bearing: 0,
             pitch: 0,
           ),
@@ -604,6 +606,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final lastUpdate = gpsData?.timestamp;
     final lastUpdateAgo = lastUpdate != null ? '${DateTime.now().difference(lastUpdate).inSeconds}s' : '--';
 
+    if (heading != _lastArrowHeading) {
+      _lastArrowHeading = heading;
+      final target = heading / 360.0;
+      double diff = target - _arrowTurns;
+      if (diff > 0.5) diff -= 1.0;
+      if (diff < -0.5) diff += 1.0;
+      _arrowTurns += diff;
+    }
+
     return PopScope(
       canPop: _selectedMemberId == null,
       onPopInvokedWithResult: (didPop, _) {
@@ -659,6 +670,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 top: _userScreenY! - 40,
                 child: UserMapMarker(
                   heading: heading,
+                  arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
                   speed: speed,

@@ -25,6 +25,7 @@ dependencies:
   url_launcher:
   package_info_plus:
   image_picker:
+  battery_plus:
 
 dev_dependencies:
   flutter_test:
