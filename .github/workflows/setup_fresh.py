@@ -87,6 +87,20 @@ zipStorePath=wrapper/dists
         with open(toml, "w") as f:
             f.write(content)
 
+    # Patch NDK version in app/build.gradle.kts (plugins require NDK 27)
+    app_build = f"{fresh}/android/app/build.gradle.kts"
+    if os.path.exists(app_build):
+        with open(app_build) as f:
+            content = f.read()
+        content = re.sub(
+            r'(android\s*\{)',
+            r'\1\n    ndkVersion = "27.0.12077973"',
+            content
+        )
+        with open(app_build, "w") as f:
+            f.write(content)
+        print(f"[ndk] Patched ndkVersion in {app_build}")
+
     # Force Kotlin compiler version via gradle.properties
     gradle_props = f"{fresh}/android/gradle.properties"
     with open(gradle_props, "a") as f:
