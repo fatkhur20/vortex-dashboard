@@ -806,7 +806,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           _prevMemberPositions[entry.key] = Offset(x, y);
 
           final showSpeed = _selectedMemberId == member.id;
-          final heading = member.speed > 5 ? member.heading : 0;
+          final heading = member.speed > 5 ? (member.heading ?? 0.0) : 0.0;
 
           widgets.add(
             AnimatedPositioned(
