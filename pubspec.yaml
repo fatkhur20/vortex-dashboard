@@ -1,4 +1,4 @@
-name: circle_tracker
+name: vortex_dashboard
 description: Circle — Track your people in real-time.
 publish_to: 'none'
 version: 1.0.0+1
