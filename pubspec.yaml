@@ -1,5 +1,5 @@
-name: vortex_dashboard
-description: Motorcycle/car dashboard with GPS, compass, altimeter & tracking.
+name: circle_tracker
+description: Circle — Track your people in real-time.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,28 +10,16 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod:
-  riverpod_annotation:
   geolocator:
   mapbox_maps_flutter:
 
   hive:
   hive_flutter:
-  fl_chart:
   permission_handler:
   shared_preferences:
   uuid:
-  intl:
   http:
-  path_provider:
   sensors_plus:
-  geocoding:
-  equatable:
-  freezed_annotation:
-  json_annotation:
-  xml:
-  csv:
-  wakelock_plus:
-  smooth_page_indicator:
   shimmer:
   share_plus:
   url_launcher:
@@ -41,19 +29,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner:
   hive_generator:
-  freezed:
-  json_serializable:
-  riverpod_generator:
-  flutter_launcher_icons:
-
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: assets/icon.png
-  adaptive_icon_background: '#0a0f1e'
-  adaptive_icon_foreground: assets/icon.png
+  build_runner:
 
 flutter:
   uses-material-design: true

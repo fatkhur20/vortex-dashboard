@@ -18,17 +18,13 @@ import 'package:vortex_dashboard/providers/activity_provider.dart';
 import 'package:vortex_dashboard/providers/geofence_provider.dart';
 import 'package:vortex_dashboard/services/geofence_service.dart';
 import 'package:vortex_dashboard/services/notification_service.dart';
-import 'package:vortex_dashboard/services/heatmap_service.dart';
 import 'package:vortex_dashboard/widgets/map/map_enums.dart';
 import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
-import 'package:vortex_dashboard/widgets/map/heatmap_overlay.dart';
 import 'package:vortex_dashboard/widgets/map/map_button.dart';
 import 'package:vortex_dashboard/widgets/map/user_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_card.dart';
 import 'package:vortex_dashboard/widgets/map/style_sheet.dart';
-import 'package:vortex_dashboard/widgets/map/sos_dialog.dart';
-import 'package:vortex_dashboard/widgets/map/debug_panel.dart';
 import 'package:vortex_dashboard/widgets/map/status_bar.dart';
 import 'package:vortex_dashboard/widgets/map/bottom_info_bar.dart';
 
@@ -51,7 +47,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _headingUp = false;
   CameraMode _cameraMode = CameraMode.followMe;
   MapStyleLabel _mapStyle = MapStyleLabel.satelliteHybrid;
-  bool _showDebug = true;
 
   bool _overviewShown = false;
   bool _focusMode = false;
@@ -64,7 +59,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _currentZoom = 18.0;
   double _currentBearing = 0.0;
   double _currentPitch = 0.0;
-  bool _wasDriving = false;
 
   static const double _initialZoom = 18.0;
   static const double _minZoom = 3.0;
@@ -73,18 +67,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const double _defaultLng = 106.8456;
 
   bool _programmaticMove = false;
-  bool _show3D = true;
-  bool _showTerrain = true;
-  bool _showGlobe = false;
   bool _showMembers = true;
-  bool _showHeatmap = false;
-  List<HeatmapPoint> _heatmapPoints = [];
-  bool _heatmapLoaded = false;
   int _overviewExitCount = 0;
 
-  double _renderFps = 0;
-  int _frameCount = 0;
-  Timer? _fpsTimer;
   Timer? _geofenceTimer;
 
   List<GeofenceRenderData> _geofenceRenderData = [];
@@ -108,14 +93,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         setState(() {
           _mapError = true;
           _mapErrorMessage = 'Map initialization timeout';
-        });
-      }
-    });
-    _fpsTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          _renderFps = _frameCount.toDouble();
-          _frameCount = 0;
         });
       }
     });
@@ -153,7 +130,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void dispose() {
     _screenPosTimer?.cancel();
     _mapReadyTimeout?.cancel();
-    _fpsTimer?.cancel();
     _geofenceTimer?.cancel();
     _geofenceEventSub?.cancel();
     super.dispose();
@@ -173,7 +149,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _lastFollowLng = 0;
 
   void _onCameraChanged(CameraChangedEventData data) {
-    _frameCount++;
     if (!_programmaticMove && _followUser && mounted) {
       setState(() => _followUser = false);
     }
@@ -190,22 +165,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     mapboxMap.setBounds(CameraBoundsOptions(minZoom: _minZoom, maxZoom: _maxZoom));
     setState(() => _mapReady = true);
     _startScreenPosUpdates();
-    _initHeatmap();
-  }
-
-  Future<void> _initHeatmap() async {
-    final svc = HeatmapService();
-    await svc.loadFromStorage();
-    if (mounted) {
-      setState(() {
-        _heatmapPoints = svc.points;
-        _heatmapLoaded = true;
-      });
-    }
-  }
-
-  void _toggleHeatmap() {
-    setState(() => _showHeatmap = !_showHeatmap);
   }
 
   void _showOverview() {
@@ -394,13 +353,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           _showOverview();
         }
 
-        if (isDriving && !_wasDriving && _followUser && !_focusMode) {
-          _wasDriving = true;
-          setState(() => _show3D = true);
-        } else if (!isDriving && _wasDriving) {
-          _wasDriving = false;
-        }
-
         if (_followUser && !_focusMode) {
           final lat = loc['lat']!;
           final lng = loc['lng']!;
@@ -461,7 +413,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           center: Point(coordinates: Position(offsetLng, lat)),
           zoom: cam.zoom,
           bearing: heading,
-          pitch: isDriving ? 70 : (_show3D ? 60 : 0),
+          pitch: isDriving ? 70 : 0,
         ),
       );
       _programmaticMove = false;
@@ -596,18 +548,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  void _showSosDialog() {
-    final heading = _computeHeading(
-      ref.read(gpsDataProvider),
-      ref.read(compassHeadingProvider),
-    );
-    SosDialog.show(
-      context,
-      heading: heading.toStringAsFixed(0),
-      onSendSos: () {},
-    );
-  }
-
   void _changeStyle(MapStyleLabel style) async {
     setState(() => _mapStyle = style);
     if (_mapController != null) {
@@ -615,55 +555,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         await _mapController!.loadStyleURI(style.uri);
       } catch (_) {}
     }
-  }
-
-  void _toggle3D() {
-    setState(() => _show3D = !_show3D);
-    if (_mapController != null) _apply3DSettings();
-  }
-
-  Future<void> _apply3DSettings() async {
-    if (_mapController == null || !_mapReady) return;
-    try {
-      final cam = await _mapController!.getCameraState();
-      final targetPitch = _show3D ? 60.0 : 0.0;
-      if (cam.pitch != targetPitch) {
-        _programmaticMove = true;
-        await _mapController!.setCamera(
-          CameraOptions(center: cam.center, zoom: cam.zoom, bearing: cam.bearing, pitch: targetPitch),
-        );
-        _programmaticMove = false;
-      }
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  void _toggleTerrain() {
-    setState(() => _showTerrain = !_showTerrain);
-  }
-
-  Future<void> _applyTerrain(bool enable) async {
-    // Not supported in mapbox_maps_flutter 2.25.0
-  }
-
-  void _toggleGlobe() {
-    setState(() => _showGlobe = !_showGlobe);
-    if (_mapController != null && _mapReady) {
-      _tryApplyProjection(_showGlobe);
-    }
-  }
-
-  Future<void> _tryApplyProjection(bool globe) async {
-    try {
-      if (globe) {
-        await _mapController!.setCamera(CameraOptions(
-          center: Point(coordinates: Position(106.8456, -6.2088)),
-          zoom: 3,
-          pitch: 30,
-        ));
-      }
-    } catch (_) {}
   }
 
   void _centerOnGroup() {
@@ -887,8 +778,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _sqrt(double x) => x < 0 ? 0 : x > 1 ? 1 : x == 0 ? 0 : _sqrtNewton(x, x);
   double _sqrtNewton(double x, double g) => (g * g - x).abs() < 1e-10 ? g : _sqrtNewton(x, (g + x / g) / 2);
 
-
-
   @override
   Widget build(BuildContext context) {
     final location = ref.watch(currentLocationProvider);
@@ -953,18 +842,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   child: CustomPaint(
                     painter: GeofenceOverlayPainter(
                       geofences: _geofenceRenderData,
-                    ),
-                  ),
-                ),
-              ),
-
-            if (_mapReady && _showHeatmap && _heatmapPoints.isNotEmpty)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: HeatmapOverlayPainter(
-                      points: _heatmapPoints,
-                      opacity: 0.5,
                     ),
                   ),
                 ),
@@ -1036,9 +913,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}m',
                   memberCount: members.length,
                   lastUpdateAgo: lastUpdateAgo,
-                  show3D: _show3D,
-                  showTerrain: _showTerrain,
-                  showGlobe: _showGlobe,
                 ),
               ),
 
@@ -1100,43 +974,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             : _cameraMode == CameraMode.groupOverview
                                 ? 'Group Overview'
                                 : 'North Locked',
-                  ),
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: Icons.threed_rotation,
-                    onPressed: _mapReady ? _toggle3D : null,
-                    active: _show3D,
-                    tooltip: '3D View',
-                  ),
-                  if (widget.isEmbeddedInShell) ...[
-                    const SizedBox(height: 6),
-                    MapButton(
-                      icon: Icons.landscape,
-                      onPressed: _mapReady ? _toggleTerrain : null,
-                      active: _showTerrain,
-                      tooltip: 'Terrain',
-                    ),
-                    const SizedBox(height: 6),
-                    MapButton(
-                      icon: Icons.public,
-                      onPressed: _mapReady ? _toggleGlobe : null,
-                      active: _showGlobe,
-                      tooltip: 'Globe',
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: Icons.fireplace,
-                    onPressed: _mapReady && _heatmapLoaded ? _toggleHeatmap : null,
-                    active: _showHeatmap,
-                    tooltip: 'Heatmap',
-                  ),
-                  const SizedBox(height: 60),
-                  MapButton(
-                    icon: Icons.warning_amber_rounded,
-                    onPressed: _mapReady ? _showSosDialog : null,
-                    active: true,
-                    tooltip: 'SOS Emergency',
                   ),
                 ],
               ),
@@ -1217,44 +1054,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}',
                   memberCount: members.length,
                 ),
-              ),
-
-            // Debug panel (hidden in shell mode)
-            if (!widget.isEmbeddedInShell && _showDebug && _mapReady)
-              Positioned(
-                top: screenPad.top + 52,
-                left: 16,
-                child: DebugPanel(
-                  entries: [
-                    DebugInfo('Ready', 'YES'),
-                    DebugInfo('Zoom', _currentZoom.toStringAsFixed(1)),
-                    DebugInfo('Bearing', '${_currentBearing.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('Pitch', '${_currentPitch.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('FPS', '${_renderFps.toStringAsFixed(0)}'),
-                    DebugInfo('GPS H.', gpsH >= 0 ? '${gpsH.toStringAsFixed(0)}\u{00B0}' : '---'),
-                    DebugInfo('Compass', '${compassHeading.toStringAsFixed(0)}\u{00B0}'),
-                    DebugInfo('Active', '${heading.toStringAsFixed(0)}\u{00B0} ${_headingDir(heading)}'),
-                    DebugInfo('Source', _headingSourceLabel(speed, gpsH, compassHeading)),
-                    DebugInfo('Speed', '${speed.toStringAsFixed(1)} km/h'),
-                    DebugInfo('Accuracy', '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)} m'),
-                    DebugInfo('Activity', activityLabel),
-                    DebugInfo('Group', '${members.length} members'),
-                    DebugInfo('3D', _show3D ? 'ON' : 'OFF'),
-                    DebugInfo('Heatmap', _heatmapLoaded ? '${_heatmapPoints.length}pts' : '...'),
-                    DebugInfo('Mode', _cameraMode.name),
-                    DebugInfo('Style', _mapStyle.label),
-                    if (_activeGeofenceLabel != null) DebugInfo('Geofence', _activeGeofenceLabel!),
-                    if (_focusMode) DebugInfo('Focus', 'ON'),
-                  ],
-                  errorMessage: _mapError ? _mapErrorMessage : null,
-                ),
-              ),
-
-            if (!widget.isEmbeddedInShell && _showDebug && !_mapReady)
-              Positioned(
-                top: screenPad.top + 52,
-                left: 16,
-                child: DebugPanel(entries: [DebugInfo('Ready', 'NO')]),
               ),
 
             // Loading/error overlay

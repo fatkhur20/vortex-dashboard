@@ -1,4 +1,4 @@
-name: Build Vortex Dashboard APK
+name: Build Circle APK
 
 on:
   push:

@@ -14,6 +14,6 @@ if token:
 '''
     m = m.replace('<application', meta + '<application')
 
-m = m.replace('android:label="vortex_dashboard"', 'android:label="Vortex Dashboard"')
+m = m.replace('android:label="vortex_dashboard"', 'android:label="Circle"')
 open(path, 'w').write(m)
 print('Patched:', path)

@@ -21,14 +21,14 @@ Future<void> main() async {
     await StorageService.initialize();
   } catch (e, s) {
     final dir = await getApplicationDocumentsDirectory();
-    final f = File('${dir.path}/vortex_crash.log');
+    final f = File('${dir.path}/circle_crash.log');
     await f.writeAsString('$e\n$s');
   }
 
   FlutterError.onError = (details) {
     try {
       getApplicationDocumentsDirectory().then((dir) {
-        final f = File('${dir.path}/vortex_flutter_error.log');
+        final f = File('${dir.path}/circle_flutter_error.log');
         f.writeAsStringSync('${details.exception}\n${details.stack}');
       });
     } catch (_) {}
@@ -54,12 +54,12 @@ Future<void> main() async {
   try {
     runApp(
       const ProviderScope(
-        child: VortexDashboardApp(),
+        child: CircleApp(),
       ),
     );
   } catch (e, s) {
     final dir = await getApplicationDocumentsDirectory();
-    final f = File('${dir.path}/vortex_runapp_crash.log');
+    final f = File('${dir.path}/circle_runapp_crash.log');
     await f.writeAsString('$e\n$s');
     runApp(
       MaterialApp(

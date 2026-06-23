@@ -9,14 +9,14 @@ import 'package:vortex_dashboard/screens/splash_screen.dart';
 import 'package:vortex_dashboard/services/permission_service.dart';
 import 'package:vortex_dashboard/services/storage_service.dart';
 
-class VortexDashboardApp extends ConsumerStatefulWidget {
-  const VortexDashboardApp({super.key});
+class CircleApp extends ConsumerStatefulWidget {
+  const CircleApp({super.key});
 
   @override
-  ConsumerState<VortexDashboardApp> createState() => _VortexDashboardAppState();
+  ConsumerState<CircleApp> createState() => _CircleAppState();
 }
 
-class _VortexDashboardAppState extends ConsumerState<VortexDashboardApp> {
+class _CircleAppState extends ConsumerState<CircleApp> {
   bool _initialized = false;
   bool _showLogin = false;
 
@@ -67,7 +67,7 @@ class _VortexDashboardAppState extends ConsumerState<VortexDashboardApp> {
     }
 
     return MaterialApp(
-      title: 'Vortex',
+      title: 'Circle',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: AppTheme.lightTheme,

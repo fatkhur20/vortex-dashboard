@@ -33,3 +33,4 @@ Thumbs.db
 *.tmp
 *.bak
 workers/.env
+workers/continue.vsix

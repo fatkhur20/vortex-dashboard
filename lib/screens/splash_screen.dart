@@ -53,22 +53,24 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     _buildLogo(),
                     const SizedBox(height: 24),
+                    Icon(Icons.circle_outlined, size: 64, color: ThemeConstants.primaryColor.withAlpha(180)),
+                    const SizedBox(height: 8),
                     const Text(
-                      'VORTEX',
+                      'CIRCLE',
                       style: TextStyle(
                         color: ThemeConstants.primaryColor,
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 12,
+                        letterSpacing: 16,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'DASHBOARD',
+                      'Track your people',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 18,
-                        letterSpacing: 8,
+                        fontSize: 16,
+                        letterSpacing: 4,
                         fontWeight: FontWeight.w300,
                       ),
                     ),
@@ -112,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
         ],
       ),
       child: const Icon(
-        Icons.speed,
+        Icons.people_alt_outlined,
         color: ThemeConstants.primaryColor,
         size: 50,
       ),

@@ -1,4 +1,4 @@
-name: Rebuild Vortex Dashboard
+name: Rebuild Circle
 
 on:
   workflow_dispatch:

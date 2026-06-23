@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortex_dashboard/core/constants/app_constants.dart';
 import 'package:vortex_dashboard/models/group_info.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
 import 'package:vortex_dashboard/models/user_profile.dart';
@@ -39,13 +38,13 @@ class TrackingService {
 
   Future<UserProfile> initialize({String? displayName}) async {
     final store = StorageService();
-    String? deviceId = store.getString(AppConstants.storageKeyCoupleDeviceId);
+    String? deviceId = store.getString('device_id');
     if (deviceId.isEmpty) {
       deviceId = 'd${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}${Random().nextInt(0xFFFFFF).toRadixString(16)}';
-      await store.saveString(AppConstants.storageKeyCoupleDeviceId, deviceId);
+      await store.saveString('device_id', deviceId);
     }
 
-    final savedUserId = store.getString(AppConstants.storageKeyCoupleUserId);
+    final savedUserId = store.getString('user_id');
     if (savedUserId.isNotEmpty) {
       try {
         final me = await _api.getMe(savedUserId);
@@ -66,7 +65,7 @@ class TrackingService {
       id: result['user_id'] as String, deviceId: deviceId,
       displayName: displayName, createdAt: DateTime.now(),
     );
-    await store.saveString(AppConstants.storageKeyCoupleUserId, _currentUser!.id);
+    await store.saveString('user_id', _currentUser!.id);
     _isInitialized = true;
 
     // Auto-select personal group

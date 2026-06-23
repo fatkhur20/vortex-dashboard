@@ -1,4 +1,4 @@
-name: Build Vortex Dashboard (no minify)
+name: Build Circle Debug (no minify)
 
 on:
   workflow_dispatch:
