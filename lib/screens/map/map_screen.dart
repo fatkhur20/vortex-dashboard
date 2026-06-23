@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -11,7 +10,6 @@ import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/models/geofence.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
 import 'package:vortex_dashboard/models/activity.dart';
-import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/activity_provider.dart';
@@ -43,13 +41,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String _mapErrorMessage = '';
   Timer? _mapReadyTimeout;
 
-  bool _followUser = true;
-  bool _headingUp = false;
-  CameraMode _cameraMode = CameraMode.followMe;
   MapStyleLabel _mapStyle = MapStyleLabel.satelliteHybrid;
 
   bool _overviewShown = false;
-  bool _focusMode = false;
 
   double? _userScreenX;
   double? _userScreenY;
@@ -60,7 +54,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _currentBearing = 0.0;
   double _currentPitch = 0.0;
 
-  static const double _initialZoom = 18.0;
   static const double _minZoom = 3.0;
   static const double _maxZoom = 20.0;
   static const double _defaultLat = -6.2088;
@@ -68,7 +61,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   bool _programmaticMove = false;
   bool _showMembers = true;
-  int _overviewExitCount = 0;
 
   Timer? _geofenceTimer;
 
@@ -135,28 +127,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     super.dispose();
   }
 
-  double _computeHeading(GpsData? gpsData, double compassHeading) {
-    final speed = gpsData?.speed ?? 0;
-    final gpsH = gpsData?.heading ?? -1;
-    if (speed > 5 && gpsH >= 0) return gpsH;
-    if (compassHeading > 0) return compassHeading;
-    if (gpsH >= 0) return gpsH;
-    return 0;
-  }
-
-  double? _lastBearing;
-  double _lastFollowLat = 0;
-  double _lastFollowLng = 0;
-
   void _onCameraChanged(CameraChangedEventData data) {
-    if (!_programmaticMove && _followUser && mounted) {
-      setState(() => _followUser = false);
+    if (!_programmaticMove && _selectedMemberId != null && mounted) {
+      setState(() => _selectedMemberId = null);
+      _showOverview();
     }
     _programmaticMove = false;
   }
 
   void _onScroll(_) {
-    if (_followUser && mounted) setState(() => _followUser = false);
+    if (_selectedMemberId != null && mounted) {
+      setState(() => _selectedMemberId = null);
+      _showOverview();
+    }
   }
 
   void _onMapCreated(MapboxMap mapboxMap) {
@@ -244,38 +227,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         )
         .then((_) => _programmaticMove = false);
     _overviewShown = true;
-    _overviewExitCount = 0;
   }
 
   void _focusOnMember(double lat, double lng) {
     if (!_mapReady || _mapController == null) return;
     _programmaticMove = true;
-    setState(() {
-      _focusMode = true;
-      _followUser = false;
-      _headingUp = true;
-    });
     _mapController!
         .flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: 18,
-            bearing: _currentBearing,
-            pitch: 45,
+            zoom: 16,
+            bearing: 0,
+            pitch: 0,
           ),
           MapAnimationOptions(duration: 600),
         )
         .then((_) => _programmaticMove = false);
-  }
-
-  void _exitFocusMode() {
-    if (_focusMode && _overviewExitCount == 0) {
-      _overviewExitCount++;
-      setState(() => _focusMode = false);
-      _showOverview();
-    } else if (_focusMode && _overviewExitCount >= 1) {
-      _overviewExitCount = 0;
-    }
   }
 
   void _updateGeofenceScreenData() async {
@@ -336,8 +303,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Point(coordinates: Position(loc['lng']!, loc['lat']!)),
         );
         final cam = await _mapController!.getCameraState();
-        final speed = ref.read(currentSpeedProvider);
-        final isDriving = speed > 25;
 
         if (mounted) {
           setState(() {
@@ -351,16 +316,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
         if (!_overviewShown && _mapReady) {
           _showOverview();
-        }
-
-        if (_followUser && !_focusMode) {
-          final lat = loc['lat']!;
-          final lng = loc['lng']!;
-          if (lat != _lastFollowLat || lng != _lastFollowLng) {
-            _lastFollowLat = lat;
-            _lastFollowLng = lng;
-            _followToUser(lat, lng, isDriving);
-          }
         }
 
         final members = ref.read(activeGroupMembersProvider);
@@ -382,150 +337,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
   }
 
-  void _toggleFollow() {
-    if (!_mapReady) return;
-    setState(() {
-      _followUser = true;
-      _lastFollowLat = 0;
-      _lastFollowLng = 0;
-      _focusMode = false;
-      _overviewExitCount = 0;
-    });
-  }
-
-  void _followToUser(double lat, double lng, [bool isDriving = false]) async {
-    if (!_mapReady || _mapController == null) return;
-    try {
-      final cam = await _mapController!.getCameraState();
-      final heading = _headingUp
-          ? _computeHeading(ref.read(gpsDataProvider), ref.read(compassHeadingProvider))
-          : 0.0;
-
-      double offsetLng = lng;
-      if (isDriving && heading > 0) {
-        final rad = heading * pi / 180;
-        offsetLng = lng - (sin(rad) * 0.0005);
-      }
-
-      _programmaticMove = true;
-      await _mapController!.setCamera(
-        CameraOptions(
-          center: Point(coordinates: Position(offsetLng, lat)),
-          zoom: cam.zoom,
-          bearing: heading,
-          pitch: isDriving ? 70 : 0,
-        ),
-      );
-      _programmaticMove = false;
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  void _toggleHeadingUp() {
-    setState(() {
-      _headingUp = !_headingUp;
-      _lastBearing = null;
-    });
-  }
-
-  void _applyCameraBearing(double heading) async {
-    if (!_mapReady || _mapController == null || _focusMode) return;
-    final target = _headingUp ? heading : 0.0;
-    if (_lastBearing == target) return;
-    _lastBearing = target;
-    try {
-      final cam = await _mapController!.getCameraState();
-      _programmaticMove = true;
-      await _mapController!.setCamera(
-        CameraOptions(center: cam.center, zoom: cam.zoom, bearing: target, pitch: cam.pitch),
-      );
-      _programmaticMove = false;
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  void _zoomIn() async {
-    if (!_mapReady || _mapController == null) return;
-    try {
-      final cam = await _mapController!.getCameraState();
-      final z = (cam.zoom + 1).clamp(_minZoom, _maxZoom);
-      _programmaticMove = true;
-      await _mapController!.flyTo(
-        CameraOptions(center: cam.center, zoom: z, bearing: cam.bearing, pitch: cam.pitch),
-        MapAnimationOptions(duration: 200),
-      );
-      _programmaticMove = false;
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  void _zoomOut() async {
-    if (!_mapReady || _mapController == null) return;
-    try {
-      final cam = await _mapController!.getCameraState();
-      final z = (cam.zoom - 1).clamp(_minZoom, _maxZoom);
-      _programmaticMove = true;
-      await _mapController!.flyTo(
-        CameraOptions(center: cam.center, zoom: z, bearing: cam.bearing, pitch: cam.pitch),
-        MapAnimationOptions(duration: 200),
-      );
-      _programmaticMove = false;
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  Future<void> _recenter() async {
-    if (!_mapReady || _mapController == null) return;
-    final loc = ref.read(currentLocationProvider);
-    if (loc['lat'] == 0) return;
-    try {
-      _programmaticMove = true;
-      await _mapController!.flyTo(
-        CameraOptions(
-          center: Point(coordinates: Position(loc['lng']!, loc['lat']!)),
-          zoom: _initialZoom,
-          bearing: 0,
-          pitch: 0,
-        ),
-        MapAnimationOptions(duration: 800),
-      );
-      _programmaticMove = false;
-      setState(() {
-        _followUser = true;
-        _focusMode = false;
-        _overviewExitCount = 0;
-      });
-    } catch (_) {
-      _programmaticMove = false;
-    }
-  }
-
-  void _cycleCameraMode() {
-    setState(() {
-      final modes = CameraMode.values;
-      _cameraMode = modes[(_cameraMode.index + 1) % modes.length];
-      switch (_cameraMode) {
-        case CameraMode.followMe:
-          _followUser = true;
-          _headingUp = true;
-        case CameraMode.freeCamera:
-          _followUser = false;
-          _headingUp = false;
-        case CameraMode.groupOverview:
-          _followUser = false;
-          _headingUp = false;
-          _showOverview();
-        case CameraMode.northLocked:
-          _followUser = true;
-          _headingUp = false;
-      }
-    });
-  }
-
   void _showStyleSheet() {
     MapStyleSheet.show(context,
       currentStyle: _mapStyle,
@@ -543,6 +354,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _MemberProfileSheet(member: member, onLocate: () {
         Navigator.pop(context);
+        setState(() => _selectedMemberId = member.id);
         _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
       }),
     );
@@ -557,7 +369,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  void _centerOnGroup() {
+  void _showGroupOverview() {
+    setState(() => _selectedMemberId = null);
     _showOverview();
   }
 
@@ -594,13 +407,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return dirs[((heading + 11.25) / 22.5).floor() % 16];
   }
 
-  String _headingSourceLabel(double speed, double gpsH, double compassH) {
-    if (speed > 5 && gpsH >= 0) return 'GPS';
-    if (compassH > 0) return 'Compass';
-    if (gpsH >= 0) return 'GPS(static)';
-    return '---';
-  }
-
   List<Widget> _buildMemberMarkers() {
     if (!_mapReady || !_showMembers) return [];
     final myId = ref.read(userIdProvider);
@@ -616,7 +422,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     final widgets = <Widget>[];
 
-    // Group by proximity (using lat/lng for distance)
     final clusters = <String, List<MapEntry<String, MemberInfo>>>{};
     final processed = <String>{};
 
@@ -631,7 +436,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           m.value.latitude ?? 0, m.value.longitude ?? 0,
           n.value.latitude ?? 0, n.value.longitude ?? 0,
         );
-        if (dist < 0.01) { // < 10m
+        if (dist < 0.01) {
           cluster.add(MapEntry(n.key, n.value));
           processed.add(n.key);
         }
@@ -646,7 +451,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final isCluster = count > 1 && !_expandedClusters.contains(cluster.first.key);
 
       if (isCluster) {
-        // Show cluster badge
         double cx = 0, cy = 0;
         int valid = 0;
         for (final entry in cluster) {
@@ -712,9 +516,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 isOnline: member.presence == 'online',
                 heading: heading,
                 onTap: () {
-                  setState(() => _selectedMemberId = _selectedMemberId == member.id ? null : member.id);
-                  _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-                  _showMemberProfile(member);
+                  if (_selectedMemberId == member.id) {
+                    setState(() => _selectedMemberId = null);
+                    _showOverview();
+                  } else {
+                    setState(() => _selectedMemberId = member.id);
+                    _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
+                    _showMemberProfile(member);
+                  }
                 },
               ),
             ),
@@ -782,8 +591,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final location = ref.watch(currentLocationProvider);
     final gpsData = ref.watch(gpsDataProvider);
-    final compassHeading = ref.watch(compassHeadingProvider);
-    final heading = _computeHeading(gpsData, compassHeading);
+    final heading = gpsData?.heading ?? 0.0;
     final speed = gpsData?.speed ?? 0;
     final gpsH = gpsData?.heading ?? -1;
     final activity = ref.watch(currentActivityProvider).valueOrNull;
@@ -792,38 +600,36 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final uid = ref.watch(userIdProvider);
     final me = uid != null ? members.where((m) => m.id == uid).firstOrNull : null;
     final activityLabel = activity?.activityLabel ?? 'Stationary';
-    final isMoving = ref.watch(isMovingProvider);
     final activityEmoji = _getActivityEmoji(activity);
     final lastUpdate = gpsData?.timestamp;
     final lastUpdateAgo = lastUpdate != null ? '${DateTime.now().difference(lastUpdate).inSeconds}s' : '--';
 
-    _applyCameraBearing(heading);
-
     return PopScope(
-      canPop: !_focusMode,
+      canPop: _selectedMemberId == null,
       onPopInvokedWithResult: (didPop, _) {
-        if (_focusMode && !didPop) {
-          _exitFocusMode();
+        if (_selectedMemberId != null && !didPop) {
+          setState(() => _selectedMemberId = null);
+          _showOverview();
         }
       },
       child: widget.isEmbeddedInShell
-          ? _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo, compassHeading)
+          ? _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo)
           : Scaffold(
               backgroundColor: Colors.black,
               extendBodyBehindAppBar: true,
-              body: _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo, compassHeading),
+              body: _buildMapContent(context, heading, gpsData, speed, gpsH, activity, members, otherMembers, uid, me, activityLabel, activityEmoji, lastUpdateAgo),
             ),
     );
   }
 
-  Widget _buildMapContent(BuildContext context, double heading, GpsData? gpsData, double speed, double gpsH, ActivityData? activity, List<MemberInfo> members, List<MemberInfo> otherMembers, String? uid, MemberInfo? me, String activityLabel, String activityEmoji, String lastUpdateAgo, double compassHeading) {
+  Widget _buildMapContent(BuildContext context, double heading, GpsData? gpsData, double speed, double gpsH, ActivityData? activity, List<MemberInfo> members, List<MemberInfo> otherMembers, String? uid, MemberInfo? me, String activityLabel, String activityEmoji, String lastUpdateAgo) {
     final screenPad = MediaQuery.of(context).padding;
     return Stack(
       children: [
             MapWidget(
               cameraOptions: CameraOptions(
                 center: Point(coordinates: Position(_defaultLng, _defaultLat)),
-                zoom: _initialZoom,
+                zoom: 18,
               ),
               mapOptions: MapOptions(
                 pixelRatio: 1.0,
@@ -857,7 +663,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   photoUrl: _userPhotoPath,
                   speed: speed,
                   battery: me?.battery ?? 100,
-                  onTap: _toggleFollow,
+                  onTap: _showGroupOverview,
                 ),
               ),
 
@@ -956,25 +762,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     active: false,
                     tooltip: 'Map Style',
                   ),
-                  const SizedBox(height: 6),
-                  MapButton(
-                    icon: _cameraMode == CameraMode.followMe
-                        ? Icons.my_location
-                        : _cameraMode == CameraMode.freeCamera
-                            ? Icons.pan_tool
-                            : _cameraMode == CameraMode.groupOverview
-                                ? Icons.groups
-                                : Icons.north,
-                    onPressed: _mapReady ? _cycleCameraMode : null,
-                    active: _cameraMode != CameraMode.freeCamera,
-                    tooltip: _cameraMode == CameraMode.followMe
-                        ? 'Follow Me'
-                        : _cameraMode == CameraMode.freeCamera
-                            ? 'Free Camera'
-                            : _cameraMode == CameraMode.groupOverview
-                                ? 'Group Overview'
-                                : 'North Locked',
-                  ),
                 ],
               ),
             ),
@@ -988,6 +775,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   members: otherMembers,
                   memberCount: members.length,
                   onMemberTap: (m) {
+                    setState(() => _selectedMemberId = m.id);
                     _focusOnMember(m.latitude ?? 0, m.longitude ?? 0);
                     _showMemberProfile(m);
                   },
@@ -1000,25 +788,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               bottom: widget.isEmbeddedInShell ? 100 : 200,
               child: Column(
                 children: [
-                  MapButton(
-                    icon: Icons.my_location,
-                    onPressed: _mapReady ? _recenter : null,
-                    active: false,
-                    tooltip: 'Recenter',
-                  ),
-                  const SizedBox(height: 8),
-                  MapButton(
-                    icon: _followUser ? Icons.navigation : Icons.navigation_outlined,
-                    onPressed: _mapReady ? _toggleFollow : null,
-                    active: _followUser,
-                    tooltip: 'Follow GPS',
-                  ),
-                  const SizedBox(height: 8),
                   if (members.length > 1) ...[
                     MapButton(
                       icon: Icons.groups,
-                      onPressed: _mapReady ? _centerOnGroup : null,
-                      active: true,
+                      onPressed: _mapReady ? _showGroupOverview : null,
+                      active: _selectedMemberId != null,
                       tooltip: 'Group Overview',
                     ),
                     const SizedBox(height: 8),
@@ -1093,6 +867,38 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
           ],
         );
+  }
+
+  void _zoomIn() async {
+    if (!_mapReady || _mapController == null) return;
+    try {
+      final cam = await _mapController!.getCameraState();
+      final z = (cam.zoom + 1).clamp(_minZoom, _maxZoom);
+      _programmaticMove = true;
+      await _mapController!.flyTo(
+        CameraOptions(center: cam.center, zoom: z, bearing: cam.bearing, pitch: cam.pitch),
+        MapAnimationOptions(duration: 200),
+      );
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
+  }
+
+  void _zoomOut() async {
+    if (!_mapReady || _mapController == null) return;
+    try {
+      final cam = await _mapController!.getCameraState();
+      final z = (cam.zoom - 1).clamp(_minZoom, _maxZoom);
+      _programmaticMove = true;
+      await _mapController!.flyTo(
+        CameraOptions(center: cam.center, zoom: z, bearing: cam.bearing, pitch: cam.pitch),
+        MapAnimationOptions(duration: 200),
+      );
+      _programmaticMove = false;
+    } catch (_) {
+      _programmaticMove = false;
+    }
   }
 
   Widget _buildStatusPills(GpsData? gpsData, int memberCount, String lastUpdateAgo) {
