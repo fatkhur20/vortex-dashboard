@@ -2,39 +2,102 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vortex_dashboard/core/constants/theme_constants.dart';
 
-class _SmoothArrowPainter extends CustomPainter {
+class _DirectionArrow extends CustomPainter {
   final Color color;
 
-  _SmoothArrowPainter({required this.color});
+  _DirectionArrow({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
     final path = Path();
     final w = size.width;
     final h = size.height;
 
     path.moveTo(w / 2, h);
-    path.quadraticBezierTo(w * 0.85, h * 0.7, w * 0.7, h * 0.35);
-    path.quadraticBezierTo(w * 0.7, h * 0.1, w / 2, 0);
-    path.quadraticBezierTo(w * 0.3, h * 0.1, w * 0.3, h * 0.35);
-    path.quadraticBezierTo(w * 0.15, h * 0.7, w / 2, h);
+    path.quadraticBezierTo(w * 0.85, h * 0.65, w * 0.68, h * 0.28);
+    path.quadraticBezierTo(w * 0.68, h * 0.06, w / 2, 0);
+    path.quadraticBezierTo(w * 0.32, h * 0.06, w * 0.32, h * 0.28);
+    path.quadraticBezierTo(w * 0.15, h * 0.65, w / 2, h);
     path.close();
 
-    canvas.drawPath(path, paint);
+    final glow = Paint()
+      ..color = color.withAlpha(80)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, glow);
+
+    final body = Paint()
+      ..color = color.withAlpha(240)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, body);
+
+    final edge = Paint()
+      ..color = Colors.white.withAlpha(30)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    canvas.drawPath(path, edge);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class UserBatteryBadge extends StatelessWidget {
+  final double battery;
+
+  const UserBatteryBadge({super.key, required this.battery});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = battery.clamp(0, 100);
+    final bars = (pct / 25).ceil().clamp(0, 4);
+    final color = pct > 20 ? Colors.white : const Color(0xFFFF5252);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(190),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withAlpha(40), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 14, height: 8,
+            padding: const EdgeInsets.all(1),
+            decoration: BoxDecoration(
+              border: Border.all(color: color, width: 1),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: Row(
+              children: List.generate(4, (i) {
+                return Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: i < 3 ? 0.5 : 0),
+                    decoration: BoxDecoration(
+                      color: i < bars ? color : Colors.transparent,
+                      borderRadius: BorderRadius.circular(0.5),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(width: 3),
+          Text('${pct.toStringAsFixed(0)}%',
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
 class UserMapMarker extends StatelessWidget {
   final double heading;
   final String activityEmoji;
   final String? photoUrl;
+  final double speed;
+  final double battery;
   final VoidCallback onTap;
 
   const UserMapMarker({
@@ -42,58 +105,82 @@ class UserMapMarker extends StatelessWidget {
     required this.heading,
     required this.activityEmoji,
     this.photoUrl,
+    this.speed = 0,
+    this.battery = 100,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final showHeading = speed > 5;
+    final arrowSize = 40.0;
+    final avatarSize = 34.0;
+
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedRotation(
-        turns: heading / 360,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        child: SizedBox(
-          width: 64,
-          height: 72,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 56,
-                height: 64,
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: ThemeConstants.primaryColor.withAlpha(80),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-                child: CustomPaint(
-                  painter: _SmoothArrowPainter(color: ThemeConstants.primaryColor),
-                  child: Center(
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black45,
-                        image: photoUrl != null ? DecorationImage(
-                          image: FileImage(File(photoUrl!)),
-                          fit: BoxFit.cover,
-                        ) : null,
-                      ),
-                      child: photoUrl == null
-                          ? Center(child: Text(activityEmoji, style: const TextStyle(fontSize: 14)))
-                          : null,
-                    ),
+      child: SizedBox(
+        width: arrowSize + 16,
+        height: arrowSize + avatarSize + 20,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              top: 0,
+              child: AnimatedRotation(
+                turns: showHeading ? heading / 360 : 0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: SizedBox(
+                  width: arrowSize,
+                  height: arrowSize,
+                  child: CustomPaint(
+                    painter: _DirectionArrow(color: ThemeConstants.primaryColor),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              top: arrowSize - 6,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: ThemeConstants.primaryColor.withAlpha(100),
+                      blurRadius: 16,
+                      spreadRadius: 3,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  width: avatarSize,
+                  height: avatarSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: ThemeConstants.primaryColor,
+                      width: 2.5,
+                    ),
+                    color: Colors.black54,
+                    image: photoUrl != null
+                        ? DecorationImage(
+                            image: FileImage(File(photoUrl!)),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: photoUrl == null
+                      ? Center(child: Text(activityEmoji, style: const TextStyle(fontSize: 16)))
+                      : null,
+                ),
+              ),
+            ),
+            Positioned(
+              top: arrowSize + avatarSize - 4,
+              child: UserBatteryBadge(battery: battery),
+            ),
+          ],
         ),
       ),
     );
@@ -103,11 +190,18 @@ class UserMapMarker extends StatelessWidget {
 class UserSpeedLabel extends StatelessWidget {
   final String speed;
   final Color color;
+  final bool visible;
 
-  const UserSpeedLabel({super.key, required this.speed, required this.color});
+  const UserSpeedLabel({
+    super.key,
+    required this.speed,
+    required this.color,
+    this.visible = true,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (!visible) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

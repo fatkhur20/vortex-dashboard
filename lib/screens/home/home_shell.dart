@@ -24,10 +24,21 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _currentIndex = 0;
+  bool _tabInitialized = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
+    if (!_tabInitialized) {
+      final groups = ref.read(groupsProvider).valueOrNull ?? [];
+      if (groups.isNotEmpty) {
+        final hasRealGroup = groups.any((g) => g.memberCount > 1 || !g.isOwner);
+        if (!hasRealGroup) {
+          _currentIndex = 1;
+        }
+        _tabInitialized = true;
+      }
+    }
     final pages = <Widget>[
       const MapScreen(isEmbeddedInShell: true),
       const GroupTab(),

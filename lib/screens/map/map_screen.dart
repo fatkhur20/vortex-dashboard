@@ -92,6 +92,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _activeGeofenceLabel;
   StreamSubscription<GeofenceEvent>? _geofenceEventSub;
   String? _userPhotoPath;
+  String? _selectedMemberId;
+  final Map<String, Offset> _prevMemberPositions = {};
+  final Set<String> _expandedClusters = {};
 
   @override
   void initState() {
@@ -710,66 +713,179 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   List<Widget> _buildMemberMarkers() {
     if (!_mapReady || !_showMembers) return [];
     final myId = ref.read(userIdProvider);
+    final allMembers = ref.read(activeGroupMembersProvider);
     final members = <String, MemberInfo>{};
-    for (final entry in _memberScreenPos.entries) {
-      if (entry.key == myId) continue;
-      final m = ref.read(activeGroupMembersProvider).where((x) => x.id == entry.key).firstOrNull;
-      if (m != null) members[entry.key] = m;
+    for (final m in allMembers) {
+      if (m.id == myId) continue;
+      if (_memberScreenPos.containsKey(m.id)) {
+        members[m.id] = m;
+      }
     }
     if (members.isEmpty) return [];
 
     final widgets = <Widget>[];
-    final posGroups = <String, List<MapEntry<String, MemberInfo>>>{};
+
+    // Group by proximity (using lat/lng for distance)
+    final clusters = <String, List<MapEntry<String, MemberInfo>>>{};
+    final processed = <String>{};
+
     for (final m in members.entries) {
-      final pos = _memberScreenPos[m.key]!;
-      final key = '${pos['x']!.toStringAsFixed(0)},${pos['y']!.toStringAsFixed(0)}';
-      posGroups.putIfAbsent(key, () => []).add(MapEntry(m.key, m.value));
+      if (processed.contains(m.key)) continue;
+      final cluster = <MapEntry<String, MemberInfo>>[MapEntry(m.key, m.value)];
+      processed.add(m.key);
+
+      for (final n in members.entries) {
+        if (processed.contains(n.key)) continue;
+        final dist = _haversine(
+          m.value.latitude ?? 0, m.value.longitude ?? 0,
+          n.value.latitude ?? 0, n.value.longitude ?? 0,
+        );
+        if (dist < 0.01) { // < 10m
+          cluster.add(MapEntry(n.key, n.value));
+          processed.add(n.key);
+        }
+      }
+
+      final key = cluster.map((e) => e.key).join(',');
+      clusters[key] = cluster;
     }
 
-    for (final group in posGroups.values) {
-      final count = group.length;
-      for (var i = 0; i < count; i++) {
-        final entry = group[i];
-        final pos = _memberScreenPos[entry.key]!;
-        final member = entry.value;
-        double ox = 0, oy = 0;
-        if (count > 1) {
-          final angle = (360 / count * i) * (3.14159 / 180);
-          ox = (count > 2 ? 48 : 40) * cos(angle);
-          oy = (count > 2 ? 48 : 40) * sin(angle);
+    for (final cluster in clusters.values) {
+      final count = cluster.length;
+      final isCluster = count > 1 && !_expandedClusters.contains(cluster.first.key);
+
+      if (isCluster) {
+        // Show cluster badge
+        double cx = 0, cy = 0;
+        int valid = 0;
+        for (final entry in cluster) {
+          final pos = _memberScreenPos[entry.key];
+          if (pos != null) {
+            cx += pos['x']!;
+            cy += pos['y']!;
+            valid++;
+          }
         }
-        final x = pos['x']! + ox;
-        final y = pos['y']! + oy;
+        if (valid == 0) continue;
+        cx /= valid;
+        cy /= valid;
+
         widgets.add(
           Positioned(
-            left: x - 22, top: y - 22,
-            child: MemberMapMarker(
-              memberId: member.id,
-              memberName: member.displayName,
-              activityEmoji: _getActivityEmoji(member.activity),
-              battery: member.battery,
-              photoUrl: member.avatarUrl,
+            key: ValueKey('cluster_${cluster.first.key}'),
+            left: cx - 28, top: cy - 20,
+            child: GestureDetector(
               onTap: () {
-                _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-                _showMemberProfile(member);
+                setState(() {
+                  for (final e in cluster) {
+                    _expandedClusters.add(e.key);
+                  }
+                });
               },
+              child: MemberClusterBadge(count: count),
             ),
           ),
         );
-        widgets.add(
-          Positioned(
-            left: x - 28, top: y + 24,
-            child: MemberStatusLabel(
-              presence: member.presence,
-              speed: member.speed,
-              activity: member.activity,
+      } else {
+        for (var i = 0; i < count; i++) {
+          final entry = cluster[i];
+          final pos = _memberScreenPos[entry.key];
+          if (pos == null) continue;
+          final member = entry.value;
+
+          double ox = 0, oy = 0;
+          if (count > 1) {
+            final angle = (360 / count * i) * (3.14159 / 180);
+            ox = (count > 2 ? 40 : 32) * cos(angle);
+            oy = (count > 2 ? 40 : 32) * sin(angle);
+          }
+
+          final x = pos['x']! + ox;
+          final y = pos['y']! + oy;
+          final prev = _prevMemberPositions[entry.key];
+          _prevMemberPositions[entry.key] = Offset(x, y);
+
+          final showSpeed = _selectedMemberId == member.id;
+          final heading = member.speed > 5 ? member.heading : 0;
+
+          widgets.add(
+            AnimatedPositioned(
+              key: ValueKey('m_${member.id}'),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              left: x - 22, top: y - 22,
+              child: MemberMapMarker(
+                memberId: member.id,
+                memberName: member.displayName,
+                photoUrl: member.avatarUrl,
+                isOnline: member.presence == 'online',
+                heading: heading,
+                onTap: () {
+                  setState(() => _selectedMemberId = _selectedMemberId == member.id ? null : member.id);
+                  _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
+                  _showMemberProfile(member);
+                },
+              ),
             ),
-          ),
-        );
+          );
+
+          final isSelected = _selectedMemberId == member.id;
+          if (isSelected) {
+            widgets.add(
+              AnimatedPositioned(
+                key: ValueKey('mn_${member.id}'),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                left: x - 30, top: y + 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MemberNameLabel(name: member.displayName),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: member.presence == 'online'
+                            ? const Color(0xFF00E676).withAlpha(160)
+                            : member.presence == 'away'
+                                ? const Color(0xFFFFC107).withAlpha(160)
+                                : Colors.red.withAlpha(160),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        member.speed > 0
+                            ? '${member.speed.toStringAsFixed(0)} km/h'
+                            : member.activity,
+                        style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        }
       }
     }
+
     return widgets;
   }
+
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const r = 6371.0;
+    final dLat = _rad(lat2 - lat1);
+    final dLon = _rad(lon2 - lon1);
+    final a = _sin2(dLat / 2) + _cos(_rad(lat1)) * _cos(_rad(lat2)) * _sin2(dLon / 2);
+    return r * 2 * _asin(_sqrt(a));
+  }
+
+  double _rad(double d) => d * 3.141592653589793 / 180;
+  double _sin2(double x) { final s = _sin(x); return s * s; }
+  double _sin(double x) => x - x * x * x / 6 + x * x * x * x * x / 120;
+  double _cos(double x) => 1 - x * x / 2 + x * x * x * x / 24;
+  double _asin(double x) => x + x * x * x / 6 + x * x * x * x * x * 3 / 40;
+  double _sqrt(double x) => x < 0 ? 0 : x > 1 ? 1 : x == 0 ? 0 : _sqrtNewton(x, x);
+  double _sqrtNewton(double x, double g) => (g * g - x).abs() < 1e-10 ? g : _sqrtNewton(x, (g + x / g) / 2);
 
 
 
@@ -856,12 +972,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
             if (_mapReady && _userScreenX != null && _userScreenY != null)
               Positioned(
-                left: _userScreenX! - 32,
+                left: _userScreenX! - 30,
                 top: _userScreenY! - 40,
                 child: UserMapMarker(
                   heading: heading,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
+                  speed: speed,
+                  battery: me?.battery ?? 100,
                   onTap: _toggleFollow,
                 ),
               ),
@@ -869,10 +987,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             if (_mapReady && _userScreenX != null && _userScreenY != null)
               Positioned(
                 left: _userScreenX! - 40,
-                top: _userScreenY! + 24,
+                top: _userScreenY! + 58,
                 child: UserSpeedLabel(
                   speed: speed.toStringAsFixed(0),
                   color: _speedColor(speed),
+                  visible: true,
                 ),
               ),
 
@@ -951,24 +1070,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
 
-            // Map layers button (left side)
-            Positioned(
-              top: screenPad.top + 56,
-              left: 16,
-              child: MapButton(
-                icon: Icons.layers,
-                onPressed: _mapReady ? _showStyleSheet : null,
-                active: false,
-                tooltip: 'Map Layers',
-              ),
-            ),
-
             // Right side action buttons
             Positioned(
               top: screenPad.top + 56,
               right: 16,
               child: Column(
                 children: [
+                  MapButton(
+                    icon: Icons.layers,
+                    onPressed: _mapReady ? _showStyleSheet : null,
+                    active: false,
+                    tooltip: 'Map Style',
+                  ),
+                  const SizedBox(height: 6),
                   MapButton(
                     icon: _cameraMode == CameraMode.followMe
                         ? Icons.my_location
