@@ -142,7 +142,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       setState(() => _selectedMemberId = null);
       _showOverview();
     }
-    _programmaticMove = false;
   }
 
   void _onScroll(_) {
@@ -235,7 +234,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           MapAnimationOptions(duration: 1000),
         )
-        .then((_) => _programmaticMove = false);
+        .then((_) => _programmaticMove = false)
+        .catchError((_) => _programmaticMove = false);
     _overviewShown = true;
   }
 
@@ -246,13 +246,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: 18,
+            zoom: _maxZoom,
             bearing: 0,
             pitch: 0,
           ),
           MapAnimationOptions(duration: 600),
         )
-        .then((_) => _programmaticMove = false);
+        .then((_) => _programmaticMove = false)
+        .catchError((_) => _programmaticMove = false);
   }
 
   void _updateGeofenceScreenData() async {
@@ -649,7 +650,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             MapWidget(
               cameraOptions: CameraOptions(
                 center: Point(coordinates: Position(_defaultLng, _defaultLat)),
-            zoom: _maxZoom,
+                zoom: 18,
               ),
               mapOptions: MapOptions(
                 pixelRatio: 1.0,
@@ -678,11 +679,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 left: _userScreenX! - 30,
                 top: _userScreenY! - 40,
                 child: UserMapMarker(
-                  heading: heading,
                   arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
-                  speed: speed,
                   battery: me?.battery ?? 100,
                   onTap: _showGroupOverview,
                 ),

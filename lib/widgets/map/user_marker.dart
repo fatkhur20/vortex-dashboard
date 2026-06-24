@@ -93,45 +93,45 @@ class UserBatteryBadge extends StatelessWidget {
 }
 
 class UserMapMarker extends StatelessWidget {
-  final double heading;
   final double arrowTurns;
   final String activityEmoji;
   final String? photoUrl;
-  final double speed;
   final double battery;
   final VoidCallback onTap;
 
   const UserMapMarker({
     super.key,
-    required this.heading,
     required this.arrowTurns,
     required this.activityEmoji,
     this.photoUrl,
-    this.speed = 0,
     this.battery = 100,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final arrowSize = 40.0;
-    final avatarSize = 34.0;
+    const arrowSize = 40.0;
+    const avatarSize = 34.0;
+    const overlap = 6.0;
+    const badgeH = 20.0;
+    const outerW = 56.0;
+    const totalH = arrowSize + avatarSize - overlap + badgeH + 4;
 
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: arrowSize + 16,
-        height: arrowSize + avatarSize + 20,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              top: 0,
-              child: AnimatedRotation(
-                turns: arrowTurns,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
+      child: AnimatedRotation(
+        turns: arrowTurns,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        child: SizedBox(
+          width: outerW,
+          height: totalH,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 0,
+                left: (outerW - arrowSize) / 2,
                 child: SizedBox(
                   width: arrowSize,
                   height: arrowSize,
@@ -140,20 +140,9 @@ class UserMapMarker extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: arrowSize - 6,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: ThemeConstants.primaryColor.withAlpha(100),
-                      blurRadius: 16,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                ),
+              Positioned(
+                top: arrowSize - overlap,
+                left: (outerW - avatarSize) / 2,
                 child: Container(
                   width: avatarSize,
                   height: avatarSize,
@@ -176,12 +165,16 @@ class UserMapMarker extends StatelessWidget {
                       : null,
                 ),
               ),
-            ),
-            Positioned(
-              top: arrowSize + avatarSize - 4,
-              child: UserBatteryBadge(battery: battery),
-            ),
-          ],
+              Positioned(
+                top: arrowSize - overlap + avatarSize + 2,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: UserBatteryBadge(battery: battery),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
