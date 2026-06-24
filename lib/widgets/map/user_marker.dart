@@ -114,7 +114,6 @@ class UserMapMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showHeading = speed > 5;
     final arrowSize = 40.0;
     final avatarSize = 34.0;
 
@@ -130,7 +129,7 @@ class UserMapMarker extends StatelessWidget {
             Positioned(
               top: 0,
               child: AnimatedRotation(
-                turns: showHeading ? arrowTurns : 0,
+                turns: arrowTurns,
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
                 child: SizedBox(

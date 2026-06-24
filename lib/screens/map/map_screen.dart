@@ -134,9 +134,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final speed = gpsData?.speed ?? 0;
     final gpsH = gpsData?.heading ?? -1;
     if (speed > 5 && gpsH >= 0) return gpsH;
-    if (compassHeading > 0) return compassHeading;
-    if (gpsH >= 0) return gpsH;
-    return 0;
+    return compassHeading;
   }
 
   void _onCameraChanged(CameraChangedEventData data) {
