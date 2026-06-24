@@ -42,10 +42,40 @@ class _DirectionArrow extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class UserBatteryBadge extends StatelessWidget {
+class _SpeedBadge extends StatelessWidget {
+  final String speed;
+  final Color color;
+
+  const _SpeedBadge({required this.speed, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(190),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withAlpha(120),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        '$speed km/h',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _BatteryBadge extends StatelessWidget {
   final double battery;
 
-  const UserBatteryBadge({super.key, required this.battery});
+  const _BatteryBadge({required this.battery});
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +127,8 @@ class UserMapMarker extends StatelessWidget {
   final String activityEmoji;
   final String? photoUrl;
   final double battery;
+  final String speed;
+  final Color speedColor;
   final VoidCallback onTap;
 
   const UserMapMarker({
@@ -105,6 +137,8 @@ class UserMapMarker extends StatelessWidget {
     required this.activityEmoji,
     this.photoUrl,
     this.battery = 100,
+    this.speed = '0',
+    this.speedColor = Colors.white,
     required this.onTap,
   });
 
@@ -114,8 +148,9 @@ class UserMapMarker extends StatelessWidget {
     const avatarSize = 34.0;
     const overlap = 6.0;
     const badgeH = 20.0;
+    const speedH = 18.0;
     const outerW = 56.0;
-    const totalH = arrowSize + avatarSize - overlap + badgeH + 4;
+    const totalH = arrowSize + avatarSize - overlap + badgeH + 4 + speedH + 2;
 
     return GestureDetector(
       onTap: onTap,
@@ -170,48 +205,19 @@ class UserMapMarker extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: Center(
-                  child: UserBatteryBadge(battery: battery),
+                  child: _BatteryBadge(battery: battery),
+                ),
+              ),
+              Positioned(
+                top: arrowSize - overlap + avatarSize + 2 + badgeH + 1,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _SpeedBadge(speed: speed, color: speedColor),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class UserSpeedLabel extends StatelessWidget {
-  final String speed;
-  final Color color;
-  final bool visible;
-
-  const UserSpeedLabel({
-    super.key,
-    required this.speed,
-    required this.color,
-    this.visible = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (!visible) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(180),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: ThemeConstants.primaryColor.withAlpha(75),
-          width: 0.5,
-        ),
-      ),
-      child: Text(
-        '$speed km/h',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
         ),
       ),
     );
