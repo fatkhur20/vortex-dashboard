@@ -881,7 +881,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _zoomIn() async {
-    if (!_mapReady || _mapController == null || _programmaticMove) return;
+    if (!_mapReady || _mapController == null) return;
     try {
       final cam = await _mapController!.getCameraState();
       final z = (cam.zoom + 1).clamp(_minZoom, _maxZoom);
@@ -897,7 +897,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _zoomOut() async {
-    if (!_mapReady || _mapController == null || _programmaticMove) return;
+    if (!_mapReady || _mapController == null) return;
     try {
       final cam = await _mapController!.getCameraState();
       final z = (cam.zoom - 1).clamp(_minZoom, _maxZoom);
