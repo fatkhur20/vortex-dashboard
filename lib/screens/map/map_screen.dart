@@ -22,10 +22,11 @@ import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
 import 'package:vortex_dashboard/widgets/map/map_button.dart';
 import 'package:vortex_dashboard/widgets/map/user_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_marker.dart';
-import 'package:vortex_dashboard/widgets/map/member_card.dart';
 import 'package:vortex_dashboard/widgets/map/style_sheet.dart';
 import 'package:vortex_dashboard/widgets/map/status_bar.dart';
 import 'package:vortex_dashboard/widgets/map/bottom_info_bar.dart';
+import 'package:vortex_dashboard/widgets/map/member_bottom_bar.dart';
+import 'package:vortex_dashboard/services/location_history.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final bool isEmbeddedInShell;
@@ -246,7 +247,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: _maxZoom,
+            zoom: 20,
             bearing: 0,
             pitch: 0,
           ),
@@ -332,9 +333,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         final members = ref.read(activeGroupMembersProvider);
         if (_showMembers) {
           final newPos = <String, Map<String, double>>{};
+          final now = DateTime.now();
           for (final m in members) {
             if (m.latitude == null || m.longitude == null) continue;
             if (m.latitude == 0 && m.longitude == 0) continue;
+            LocationHistory().record(m.id, m.latitude!, m.longitude!, now);
             try {
               final screen = await _mapController!.pixelForCoordinate(
                 Point(coordinates: Position(m.longitude!, m.latitude!)),
@@ -356,18 +359,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         _saveStyle(style);
         _changeStyle(style);
       },
-    );
-  }
-
-  void _showMemberProfile(MemberInfo member) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _MemberProfileSheet(member: member, onLocate: () {
-        Navigator.pop(context);
-        setState(() => _selectedMemberId = member.id);
-        _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-      }),
     );
   }
 
@@ -526,16 +517,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 photoUrl: member.avatarUrl,
                 isOnline: member.presence == 'online',
                 heading: heading,
-                onTap: () {
-                  if (_selectedMemberId == member.id) {
-                    setState(() => _selectedMemberId = null);
-                    _showOverview();
-                  } else {
-                    setState(() => _selectedMemberId = member.id);
-                    _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-                    _showMemberProfile(member);
-                  }
-                },
+                  onTap: () {
+                    if (_selectedMemberId == member.id) {
+                      setState(() => _selectedMemberId = null);
+                      _showOverview();
+                    } else {
+                      setState(() => _selectedMemberId = member.id);
+                      _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
+                    }
+                  },
               ),
             ),
           );
@@ -682,9 +672,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
-                  battery: me?.battery ?? 100,
-                  speed: speed.toStringAsFixed(0),
-                  speedColor: _speedColor(speed),
                   onTap: _showGroupOverview,
                 ),
               ),
@@ -777,18 +764,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-            // Floating member card
+            // Member bottom bar
             if (_mapReady && otherMembers.isNotEmpty && _showMembers)
               Positioned(
-                left: 16,
-                top: widget.isEmbeddedInShell ? screenPad.top + 56 : screenPad.top + 104,
-                child: FloatingMembersCard(
+                left: 0,
+                right: 0,
+                bottom: screenPad.bottom + (widget.isEmbeddedInShell ? 0 : 60),
+                child: MemberBottomBar(
                   members: otherMembers,
-                  memberCount: members.length,
+                  selectedMemberId: _selectedMemberId,
                   onMemberTap: (m) {
-                    setState(() => _selectedMemberId = m.id);
-                    _focusOnMember(m.latitude ?? 0, m.longitude ?? 0);
-                    _showMemberProfile(m);
+                    setState(() {
+                      if (_selectedMemberId == m.id) {
+                        _selectedMemberId = null;
+                        _showOverview();
+                      } else {
+                        _selectedMemberId = m.id;
+                        _focusOnMember(m.latitude ?? 0, m.longitude ?? 0);
+                      }
+                    });
                   },
                 ),
               ),
@@ -941,105 +935,4 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 }
 
-class _MemberProfileSheet extends StatelessWidget {
-  final MemberInfo member;
-  final VoidCallback onLocate;
 
-  const _MemberProfileSheet({required this.member, required this.onLocate});
-
-  @override
-  Widget build(BuildContext context) {
-    final emoji = _profileEmoji(member.activity);
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-        left: 16, right: 16, top: 24,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(2),
-          )),
-          const SizedBox(height: 20),
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
-            child: Text(emoji, style: const TextStyle(fontSize: 34)),
-          ),
-          const SizedBox(height: 12),
-          Text(member.displayName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: _presenceColor(member.presence).withAlpha(30),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              member.presence == 'online' ? 'Online' : member.presence == 'away' ? 'Away' : 'Offline',
-              style: TextStyle(fontSize: 12, color: _presenceColor(member.presence), fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _stat(Icons.speed, '${member.speed.toStringAsFixed(1)} km/h'),
-              _stat(Icons.battery_charging_full, '${member.battery?.toInt() ?? 0}%'),
-              _stat(Icons.directions_walk, member.activity),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onLocate,
-              icon: const Icon(Icons.my_location, size: 18),
-              label: const Text('Locate on Map'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(IconData icon, String value) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white38, size: 18),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  Color _presenceColor(String presence) {
-    if (presence == 'online') return const Color(0xFF00E676);
-    if (presence == 'away') return const Color(0xFFFFC107);
-    return Colors.red;
-  }
-
-  String _profileEmoji(String activity) {
-    switch (activity) {
-      case 'Walking': return '\u{1F6B6}';
-      case 'Running': return '\u{1F3C3}';
-      case 'Cycling': return '\u{1F6B4}';
-      case 'Driving': return '\u{1F697}';
-      case 'Stationary': return '\u{1F9CD}';
-      default: return '\u{1F4CD}';
-    }
-  }
-}
