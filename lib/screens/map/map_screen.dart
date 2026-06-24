@@ -56,7 +56,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _currentPitch = 0.0;
 
   static const double _minZoom = 3.0;
-  static const double _maxZoom = 20.0;
+  static const double _maxZoom = 22.0;
   static const double _defaultLat = -6.2088;
   static const double _defaultLng = 106.8456;
 
