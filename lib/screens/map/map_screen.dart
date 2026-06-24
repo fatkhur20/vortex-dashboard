@@ -10,6 +10,7 @@ import 'package:vortex_dashboard/models/gps_data.dart';
 import 'package:vortex_dashboard/models/geofence.dart';
 import 'package:vortex_dashboard/models/member_info.dart';
 import 'package:vortex_dashboard/models/activity.dart';
+import 'package:vortex_dashboard/providers/compass_provider.dart';
 import 'package:vortex_dashboard/providers/gps_provider.dart';
 import 'package:vortex_dashboard/providers/tracking_provider.dart';
 import 'package:vortex_dashboard/providers/activity_provider.dart';
@@ -127,6 +128,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _geofenceTimer?.cancel();
     _geofenceEventSub?.cancel();
     super.dispose();
+  }
+
+  double _computeHeading(GpsData? gpsData, double compassHeading) {
+    final speed = gpsData?.speed ?? 0;
+    final gpsH = gpsData?.heading ?? -1;
+    if (speed > 5 && gpsH >= 0) return gpsH;
+    if (compassHeading > 0) return compassHeading;
+    if (gpsH >= 0) return gpsH;
+    return 0;
   }
 
   void _onCameraChanged(CameraChangedEventData data) {
@@ -593,7 +603,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final location = ref.watch(currentLocationProvider);
     final gpsData = ref.watch(gpsDataProvider);
-    final heading = gpsData?.heading ?? 0.0;
+    final compassHeading = ref.watch(compassHeadingProvider);
+    final heading = _computeHeading(gpsData, compassHeading);
     final speed = gpsData?.speed ?? 0;
     final gpsH = gpsData?.heading ?? -1;
     final activity = ref.watch(currentActivityProvider).valueOrNull;
@@ -640,7 +651,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             MapWidget(
               cameraOptions: CameraOptions(
                 center: Point(coordinates: Position(_defaultLng, _defaultLat)),
-                zoom: 18,
+            zoom: _maxZoom,
               ),
               mapOptions: MapOptions(
                 pixelRatio: 1.0,
