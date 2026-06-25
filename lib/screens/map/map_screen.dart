@@ -641,8 +641,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _lastArrowHeading = heading;
       final target = heading / 360.0;
       double diff = target - _arrowTurns;
-      if (diff > 0.5) diff -= 1.0;
-      if (diff < -0.5) diff += 1.0;
+      diff = ((diff + 0.5) % 1.0) - 0.5;
       _arrowTurns += diff;
     }
 
