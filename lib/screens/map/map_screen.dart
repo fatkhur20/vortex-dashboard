@@ -21,6 +21,7 @@ import 'package:vortex_dashboard/services/trip_tracker.dart';
 import 'package:vortex_dashboard/widgets/map/map_enums.dart';
 import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
 import 'package:vortex_dashboard/widgets/map/map_button.dart';
+import 'package:vortex_dashboard/widgets/map/style_sheet.dart';
 import 'package:vortex_dashboard/widgets/map/user_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_marker.dart';
 import 'package:vortex_dashboard/widgets/map/trip_summary_sheet.dart';
