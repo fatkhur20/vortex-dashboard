@@ -424,13 +424,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return '\u{1F4CD}';
   }
 
-  Color _speedColor(double speed) {
-    if (speed < 1) return Colors.white;
-    if (speed < 40) return ThemeConstants.successColor;
-    if (speed < 80) return ThemeConstants.warningColor;
-    return const Color(0xFFFF1744);
-  }
-
   String _headingDir(double heading) {
     final dirs = [
       'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
@@ -697,15 +690,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
             if (_mapReady && _userScreenX != null && _userScreenY != null)
               Positioned(
-                left: _userScreenX! - 30,
-                top: _userScreenY! - 40,
+                left: _userScreenX! - 16,
+                top: _userScreenY! - 54,
                 child: UserMapMarker(
                   arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
-                  battery: me?.battery ?? 100,
-                  speed: speed.toStringAsFixed(0),
-                  speedColor: _speedColor(speed),
                   onTap: () => _showTripSummary(me),
                 ),
               ),
