@@ -150,74 +150,86 @@ class UserMapMarker extends StatelessWidget {
     const badgeH = 20.0;
     const speedH = 18.0;
     const outerW = 56.0;
-    const totalH = arrowSize + avatarSize - overlap + badgeH + 4 + speedH + 2;
+    const topH = arrowSize + avatarSize - overlap;
+    const totalH = topH + badgeH + 4 + speedH + 2;
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedRotation(
-        turns: arrowTurns,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        child: SizedBox(
-          width: outerW,
-          height: totalH,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                top: 0,
-                left: (outerW - arrowSize) / 2,
-                child: SizedBox(
-                  width: arrowSize,
-                  height: arrowSize,
-                  child: CustomPaint(
-                    painter: _DirectionArrow(color: ThemeConstants.primaryColor),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: arrowSize - overlap,
-                left: (outerW - avatarSize) / 2,
-                child: Container(
-                  width: avatarSize,
-                  height: avatarSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: ThemeConstants.primaryColor,
-                      width: 2.5,
+      child: SizedBox(
+        width: outerW,
+        height: totalH,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            AnimatedRotation(
+              turns: arrowTurns,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: SizedBox(
+                width: arrowSize,
+                height: topH,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SizedBox(
+                        width: arrowSize,
+                        height: arrowSize,
+                        child: CustomPaint(
+                          painter: _DirectionArrow(color: ThemeConstants.primaryColor),
+                        ),
+                      ),
                     ),
-                    color: Colors.black54,
-                    image: photoUrl != null
-                        ? DecorationImage(
-                            image: FileImage(File(photoUrl!)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: photoUrl == null
-                      ? Center(child: Text(activityEmoji, style: const TextStyle(fontSize: 16)))
-                      : null,
+                    Positioned(
+                      top: arrowSize - overlap,
+                      left: (arrowSize - avatarSize) / 2,
+                      child: Container(
+                        width: avatarSize,
+                        height: avatarSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: ThemeConstants.primaryColor,
+                            width: 2.5,
+                          ),
+                          color: Colors.black54,
+                          image: photoUrl != null
+                              ? DecorationImage(
+                                  image: FileImage(File(photoUrl!)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: photoUrl == null
+                            ? Center(child: Text(activityEmoji, style: const TextStyle(fontSize: 16)))
+                            : null,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Positioned(
-                top: arrowSize - overlap + avatarSize + 2,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _BatteryBadge(battery: battery),
-                ),
+            ),
+            Positioned(
+              top: topH + 2,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _BatteryBadge(battery: battery),
               ),
-              Positioned(
-                top: arrowSize - overlap + avatarSize + 2 + badgeH + 1,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _SpeedBadge(speed: speed, color: speedColor),
-                ),
+            ),
+            Positioned(
+              top: topH + 2 + badgeH + 1,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _SpeedBadge(speed: speed, color: speedColor),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
