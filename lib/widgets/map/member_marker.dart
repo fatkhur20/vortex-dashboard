@@ -14,22 +14,36 @@ class _MemberArrowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withAlpha(200)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
     final w = size.width;
     final h = size.height;
+    final dotR = 5.0;
+    const arrowW = 10.0;
+    const arrowH = 10.0;
 
-    path.moveTo(w / 2, h);
-    path.quadraticBezierTo(w * 0.8, h * 0.6, w * 0.65, h * 0.25);
-    path.quadraticBezierTo(w * 0.65, h * 0.05, w / 2, 0);
-    path.quadraticBezierTo(w * 0.35, h * 0.05, w * 0.35, h * 0.25);
-    path.quadraticBezierTo(w * 0.2, h * 0.6, w / 2, h);
-    path.close();
+    // Arrow pointing up
+    final arrowPaint = Paint()
+      ..color = color.withAlpha(220)
+      ..style = PaintingStyle.fill;
 
-    canvas.drawPath(path, paint);
+    final arrowPath = Path()
+      ..moveTo(w / 2, h - dotR - arrowH)
+      ..lineTo(w / 2 - arrowW / 2, h - dotR)
+      ..lineTo(w / 2 + arrowW / 2, h - dotR)
+      ..close();
+    canvas.drawPath(arrowPath, arrowPaint);
+
+    // Dot
+    final dotPaint = Paint()
+      ..color = color.withAlpha(220)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(w / 2, h - dotR), dotR, dotPaint);
+
+    // Dot border
+    final borderPaint = Paint()
+      ..color = Colors.white.withAlpha(180)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(Offset(w / 2, h - dotR), dotR - 0.75, borderPaint);
   }
 
   @override
@@ -60,88 +74,90 @@ class MemberMapMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = memberName.isNotEmpty ? memberName[0].toUpperCase() : '?';
     final color = isMe ? ThemeConstants.primaryColor : _avatarColor(memberId);
-    final avatarSize = isMe ? 40.0 : 32.0;
-    final showHeading = !isMe && heading > 0;
+    const avatarSize = 22.0;
+    const dotSize = 10.0;
+    const arrowH = 12.0;
+    const outerW = 28.0;
+    const totalH = avatarSize + arrowH + dotSize + 4;
+
+    final headClamp = heading.clamp(0.0, 359.0);
 
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: avatarSize + 12,
-        height: avatarSize + 24,
+        width: outerW,
+        height: totalH,
         child: Stack(
-          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
           children: [
-            if (showHeading)
+            Container(
+              width: avatarSize,
+              height: avatarSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withAlpha(180), width: 1.5),
+                color: Colors.black87,
+                boxShadow: [
+                  BoxShadow(
+                    color: isOnline ? const Color(0xFF00E676).withAlpha(100) : Colors.black.withAlpha(60),
+                    blurRadius: isOnline ? 8 : 4,
+                    spreadRadius: isOnline ? 1 : 0,
+                  ),
+                ],
+                image: photoUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(photoUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: photoUrl == null
+                  ? Center(
+                      child: Text(initial,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          )),
+                    )
+                  : null,
+            ),
+            if (isOnline)
               Positioned(
-                top: 0,
-                child: AnimatedRotation(
-                  turns: heading / 360,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  child: SizedBox(
-                    width: avatarSize,
-                    height: avatarSize - 4,
-                    child: CustomPaint(
-                      painter: _MemberArrowPainter(color: color),
-                    ),
+                top: avatarSize - 4,
+                right: -1,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF00E676),
+                    border: Border.all(color: Colors.black, width: 1.5),
                   ),
                 ),
               ),
             Positioned(
-              top: showHeading ? 6 : 0,
-              child: Container(
-                width: avatarSize,
-                height: avatarSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withAlpha(180), width: 2),
-                  color: Colors.black54,
-                  boxShadow: [
-                    BoxShadow(
-                      color: isOnline ? const Color(0xFF00E676).withAlpha(80) : Colors.black.withAlpha(60),
-                      blurRadius: isOnline ? 10 : 6,
-                      spreadRadius: isOnline ? 2 : 0,
-                    ),
-                  ],
-                  image: photoUrl != null
-                      ? DecorationImage(
-                          image: NetworkImage(photoUrl!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: photoUrl == null
-                    ? Center(
-                        child: Text(initial,
-                            style: TextStyle(
-                              fontSize: avatarSize * 0.45,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            )),
-                      )
-                    : null,
-              ),
-            ),
-            if (isOnline)
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF00E676),
-                    border: Border.all(color: Colors.black, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00E676).withAlpha(120),
-                        blurRadius: 4,
+              top: avatarSize + 1,
+              child: AnimatedRotation(
+                turns: headClamp / 360.0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: SizedBox(
+                  width: outerW,
+                  height: arrowH + dotSize + 2,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      CustomPaint(
+                        size: Size(outerW, arrowH + dotSize),
+                        painter: _MemberArrowPainter(color: color),
                       ),
                     ],
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),

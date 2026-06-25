@@ -540,7 +540,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               key: ValueKey('m_${member.id}'),
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
-              left: x - 22, top: y - 22,
+              left: x - 14, top: y - 24,
               child: MemberMapMarker(
                 memberId: member.id,
                 memberName: member.displayName,
@@ -568,7 +568,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 key: ValueKey('mn_${member.id}'),
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
-                left: x - 30, top: y + 16,
+                left: x - 30, top: y + 26,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
