@@ -381,7 +381,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       isScrollControlled: true,
       builder: (_) => TripSummarySheet(
         displayName: me.displayName,
-        photoUrl: _userPhotoPath,
+        photoUrl: me.avatarUrl?.isNotEmpty == true ? me.avatarUrl! : _userPhotoPath,
         presence: me.presence,
         battery: me.battery ?? 100,
       ),
@@ -640,10 +640,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Widget _buildMapContent(BuildContext context, double heading, GpsData? gpsData, double speed, double gpsH, ActivityData? activity, List<MemberInfo> members, List<MemberInfo> otherMembers, String? uid, MemberInfo? me, String activityLabel, String activityEmoji, String lastUpdateAgo) {
     final screenPad = MediaQuery.of(context).padding;
-    final allBarMembers = <MemberInfo>[
-      if (me != null) me,
-      ...otherMembers,
-    ];
     return Stack(
       children: [
             MapWidget(
@@ -785,9 +781,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (allBarMembers.isNotEmpty && _showMembers)
+                    if (members.isNotEmpty && _showMembers)
                       _MemberBar(
-                        members: allBarMembers,
+                        members: members,
                         onTap: (m) => _showTripSummary(m),
                       ),
                     const SizedBox(height: 8),
