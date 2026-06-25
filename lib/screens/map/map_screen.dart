@@ -17,6 +17,7 @@ import 'package:vortex_dashboard/providers/activity_provider.dart';
 import 'package:vortex_dashboard/providers/geofence_provider.dart';
 import 'package:vortex_dashboard/services/geofence_service.dart';
 import 'package:vortex_dashboard/services/notification_service.dart';
+import 'package:vortex_dashboard/services/trip_tracker.dart';
 import 'package:vortex_dashboard/widgets/map/map_enums.dart';
 import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
 import 'package:vortex_dashboard/widgets/map/map_button.dart';
@@ -24,6 +25,7 @@ import 'package:vortex_dashboard/widgets/map/user_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_card.dart';
 import 'package:vortex_dashboard/widgets/map/style_sheet.dart';
+import 'package:vortex_dashboard/widgets/map/trip_summary_sheet.dart';
 import 'package:vortex_dashboard/widgets/map/status_bar.dart';
 import 'package:vortex_dashboard/widgets/map/bottom_info_bar.dart';
 
@@ -318,6 +320,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         final cam = await _mapController!.getCameraState();
 
         if (mounted) {
+          final gps = ref.read(gpsDataProvider);
+          TripTracker().record(loc['lat']!, loc['lng']!, gps?.speed ?? 0, DateTime.now());
           setState(() {
             _userScreenX = screen.x;
             _userScreenY = screen.y;
@@ -385,6 +389,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _showGroupOverview() {
     setState(() => _selectedMemberId = null);
     _showOverview();
+  }
+
+  void _showTripSummary(MemberInfo? me) {
+    if (me == null) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => TripSummarySheet(
+        displayName: me.displayName,
+        photoUrl: _userPhotoPath,
+        presence: me.presence,
+        battery: me.battery ?? 100,
+      ),
+    );
   }
 
   String _getActivityEmoji(dynamic activity) {
@@ -687,7 +706,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   battery: me?.battery ?? 100,
                   speed: speed.toStringAsFixed(0),
                   speedColor: _speedColor(speed),
-                  onTap: _showGroupOverview,
+                  onTap: () => _showTripSummary(me),
                 ),
               ),
 
