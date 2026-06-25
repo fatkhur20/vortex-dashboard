@@ -62,6 +62,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const double _defaultLng = 106.8456;
 
   bool _programmaticMove = false;
+  DateTime? _lastProgrammaticMove;
   bool _showMembers = true;
 
   Timer? _geofenceTimer;
@@ -140,6 +141,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _onCameraChanged(CameraChangedEventData data) {
     if (_cameraMode == MapCameraMode.focus && !_programmaticMove && mounted) {
+      if (_lastProgrammaticMove != null &&
+          DateTime.now().difference(_lastProgrammaticMove!).inMilliseconds < 800) {
+        return;
+      }
       setState(() => _selectedMemberId = null);
       _cameraMode = MapCameraMode.overview;
       _showOverview();
@@ -236,8 +241,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           MapAnimationOptions(duration: 1000),
         )
-        .then((_) => _programmaticMove = false)
-        .catchError((_) => _programmaticMove = false);
+        .then((_) {
+          _programmaticMove = false;
+          _lastProgrammaticMove = DateTime.now();
+        })
+        .catchError((_) {
+          _programmaticMove = false;
+          _lastProgrammaticMove = DateTime.now();
+        });
     _cameraMode = MapCameraMode.overview;
   }
 
@@ -255,8 +266,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           MapAnimationOptions(duration: 600),
         )
-        .then((_) => _programmaticMove = false)
-        .catchError((_) => _programmaticMove = false);
+        .then((_) {
+          _programmaticMove = false;
+          _lastProgrammaticMove = DateTime.now();
+        })
+        .catchError((_) {
+          _programmaticMove = false;
+          _lastProgrammaticMove = DateTime.now();
+        });
   }
 
   void _updateGeofenceScreenData() async {
