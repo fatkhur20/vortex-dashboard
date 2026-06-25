@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum MapCameraMode { initial, overview, focus }
+
 enum MapStyleLabel { satelliteHybrid, streets, dark, outdoors, custom }
 
 extension MapStyleLabelX on MapStyleLabel {

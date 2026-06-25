@@ -44,7 +44,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   MapStyleLabel _mapStyle = MapStyleLabel.satelliteHybrid;
 
-  bool _overviewShown = false;
+  MapCameraMode _cameraMode = MapCameraMode.initial;
 
   double? _userScreenX;
   double? _userScreenY;
@@ -138,8 +138,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onCameraChanged(CameraChangedEventData data) {
-    if (!_programmaticMove && _selectedMemberId != null && mounted) {
+    if (_cameraMode == MapCameraMode.focus && !_programmaticMove && mounted) {
       setState(() => _selectedMemberId = null);
+      _cameraMode = MapCameraMode.overview;
       _showOverview();
     }
   }
@@ -236,11 +237,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         )
         .then((_) => _programmaticMove = false)
         .catchError((_) => _programmaticMove = false);
-    _overviewShown = true;
+    _cameraMode = MapCameraMode.overview;
   }
 
   void _focusOnMember(double lat, double lng) {
     if (!_mapReady || _mapController == null) return;
+    _cameraMode = MapCameraMode.focus;
     _programmaticMove = true;
     _mapController!
         .flyTo(
@@ -325,7 +327,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           });
         }
 
-        if (!_overviewShown && _mapReady) {
+        if (_cameraMode == MapCameraMode.initial && _mapReady) {
           _showOverview();
         }
 
