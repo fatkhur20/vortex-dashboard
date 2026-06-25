@@ -23,8 +23,6 @@ import 'package:vortex_dashboard/widgets/map/geofence_overlay.dart';
 import 'package:vortex_dashboard/widgets/map/map_button.dart';
 import 'package:vortex_dashboard/widgets/map/user_marker.dart';
 import 'package:vortex_dashboard/widgets/map/member_marker.dart';
-import 'package:vortex_dashboard/widgets/map/member_card.dart';
-import 'package:vortex_dashboard/widgets/map/style_sheet.dart';
 import 'package:vortex_dashboard/widgets/map/trip_summary_sheet.dart';
 import 'package:vortex_dashboard/widgets/map/status_bar.dart';
 import 'package:vortex_dashboard/widgets/map/bottom_info_bar.dart';
@@ -365,18 +363,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  void _showMemberProfile(MemberInfo member) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _MemberProfileSheet(member: member, onLocate: () {
-        Navigator.pop(context);
-        setState(() => _selectedMemberId = member.id);
-        _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-      }),
-    );
-  }
-
   void _changeStyle(MapStyleLabel style) async {
     setState(() => _mapStyle = style);
     if (_mapController != null) {
@@ -548,7 +534,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   } else {
                     setState(() => _selectedMemberId = member.id);
                     _focusOnMember(member.latitude ?? 0, member.longitude ?? 0);
-                    _showMemberProfile(member);
                   }
                 },
               ),
@@ -696,7 +681,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
-                  onTap: () => _showTripSummary(me),
+                  onTap: _showGroupOverview,
                 ),
               ),
 
@@ -788,67 +773,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-            // Floating member card
-            if (_mapReady && otherMembers.isNotEmpty && _showMembers)
-              Positioned(
-                left: 16,
-                top: widget.isEmbeddedInShell ? screenPad.top + 56 : screenPad.top + 104,
-                child: FloatingMembersCard(
-                  members: otherMembers,
-                  memberCount: members.length,
-                  onMemberTap: (m) {
-                    setState(() => _selectedMemberId = m.id);
-                    _focusOnMember(m.latitude ?? 0, m.longitude ?? 0);
-                    _showMemberProfile(m);
-                  },
-                ),
-              ),
-
-            // Bottom right controls
-            Positioned(
-              right: 16,
-              bottom: widget.isEmbeddedInShell ? 100 : 200,
-              child: Column(
-                children: [
-                  if (members.length > 1) ...[
-                    MapButton(
-                      icon: Icons.groups,
-                      onPressed: _mapReady ? _showGroupOverview : null,
-                      active: _selectedMemberId != null,
-                      tooltip: 'Group Overview',
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  MapButton(
-                    icon: Icons.add,
-                    onPressed: _mapReady ? _zoomIn : null,
-                    active: false,
-                    tooltip: 'Zoom In',
-                  ),
-                  const SizedBox(height: 8),
-                  MapButton(
-                    icon: Icons.remove,
-                    onPressed: _mapReady ? _zoomOut : null,
-                    active: false,
-                    tooltip: 'Zoom Out',
-                  ),
-                ],
-              ),
-            ),
-
             // Bottom info bar (standalone only)
             if (!widget.isEmbeddedInShell)
               Positioned(
                 left: 16,
                 right: 16,
                 bottom: screenPad.bottom + 16,
-                child: BottomInfoBar(
-                  distance: '12.3',
-                  altitude: '${(gpsData?.altitude ?? 0).toStringAsFixed(0)}',
-                  heading: heading.toStringAsFixed(0),
-                  headingDir: _headingDir(heading),
-                  accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}',
-                  memberCount: members.length,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (otherMembers.isNotEmpty && _showMembers)
+                      _MemberBar(
+                        members: otherMembers,
+                        onTap: (m) => _showTripSummary(m),
+                      ),
+                    const SizedBox(height: 8),
+                    BottomInfoBar(
+                      distance: '12.3',
+                      altitude: '${(gpsData?.altitude ?? 0).toStringAsFixed(0)}',
+                      heading: heading.toStringAsFixed(0),
+                      headingDir: _headingDir(heading),
+                      accuracy: '${(gpsData?.accuracy ?? 0).toStringAsFixed(0)}',
+                      memberCount: members.length,
+                    ),
+                  ],
                 ),
               ),
 
@@ -952,105 +900,79 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 }
 
-class _MemberProfileSheet extends StatelessWidget {
-  final MemberInfo member;
-  final VoidCallback onLocate;
+class _MemberBar extends StatelessWidget {
+  final List<MemberInfo> members;
+  final ValueChanged<MemberInfo> onTap;
 
-  const _MemberProfileSheet({required this.member, required this.onLocate});
+  const _MemberBar({required this.members, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final emoji = _profileEmoji(member.activity);
     return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-        left: 16, right: 16, top: 24,
-      ),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        color: const Color(0xFF0D0D0D).withAlpha(220),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(12)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(2),
-          )),
-          const SizedBox(height: 20),
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
-            child: Text(emoji, style: const TextStyle(fontSize: 34)),
-          ),
-          const SizedBox(height: 12),
-          Text(member.displayName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: _presenceColor(member.presence).withAlpha(30),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              member.presence == 'online' ? 'Online' : member.presence == 'away' ? 'Away' : 'Offline',
-              style: TextStyle(fontSize: 12, color: _presenceColor(member.presence), fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _stat(Icons.speed, '${member.speed.toStringAsFixed(1)} km/h'),
-              _stat(Icons.battery_charging_full, '${member.battery?.toInt() ?? 0}%'),
-              _stat(Icons.directions_walk, member.activity),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onLocate,
-              icon: const Icon(Icons.my_location, size: 18),
-              label: const Text('Locate on Map'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: members.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 4),
+        itemBuilder: (ctx, i) {
+          final m = members[i];
+          final initial = m.displayName.isNotEmpty ? m.displayName[0].toUpperCase() : '?';
+          final online = m.presence == 'online';
+          return GestureDetector(
+            onTap: () => onTap(m),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: Colors.white.withAlpha(20),
+                        child: Text(initial, style: const TextStyle(
+                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700,
+                        )),
+                      ),
+                      if (online)
+                        Positioned(
+                          bottom: 0, right: 0,
+                          child: Container(
+                            width: 7, height: 7,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle, color: Color(0xFF00E676),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  SizedBox(
+                    width: 32,
+                    child: Text(
+                      m.displayName.length > 5
+                          ? '${m.displayName.substring(0, 4)}..'
+                          : m.displayName,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
-  }
-
-  Widget _stat(IconData icon, String value) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white38, size: 18),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  Color _presenceColor(String presence) {
-    if (presence == 'online') return const Color(0xFF00E676);
-    if (presence == 'away') return const Color(0xFFFFC107);
-    return Colors.red;
-  }
-
-  String _profileEmoji(String activity) {
-    switch (activity) {
-      case 'Walking': return '\u{1F6B6}';
-      case 'Running': return '\u{1F3C3}';
-      case 'Cycling': return '\u{1F6B4}';
-      case 'Driving': return '\u{1F697}';
-      case 'Stationary': return '\u{1F9CD}';
-      default: return '\u{1F4CD}';
-    }
   }
 }
