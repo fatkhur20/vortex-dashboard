@@ -373,11 +373,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  void _showGroupOverview() {
-    setState(() => _selectedMemberId = null);
-    _showOverview();
-  }
-
   void _showTripSummary(MemberInfo? me) {
     if (me == null) return;
     showModalBottomSheet(
@@ -645,6 +640,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Widget _buildMapContent(BuildContext context, double heading, GpsData? gpsData, double speed, double gpsH, ActivityData? activity, List<MemberInfo> members, List<MemberInfo> otherMembers, String? uid, MemberInfo? me, String activityLabel, String activityEmoji, String lastUpdateAgo) {
     final screenPad = MediaQuery.of(context).padding;
+    final allBarMembers = <MemberInfo>[
+      if (me != null) me,
+      ...otherMembers,
+    ];
     return Stack(
       children: [
             MapWidget(
@@ -682,7 +681,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   arrowTurns: _arrowTurns,
                   activityEmoji: activityEmoji,
                   photoUrl: _userPhotoPath,
-                  onTap: _showGroupOverview,
+                  onTap: () {
+                    final loc = ref.read(currentLocationProvider);
+                    if (loc['lat'] != 0) _focusOnMember(loc['lat']!, loc['lng']!);
+                  },
                 ),
               ),
 
@@ -783,9 +785,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (otherMembers.isNotEmpty && _showMembers)
+                    if (allBarMembers.isNotEmpty && _showMembers)
                       _MemberBar(
-                        members: otherMembers,
+                        members: allBarMembers,
                         onTap: (m) => _showTripSummary(m),
                       ),
                     const SizedBox(height: 8),
