@@ -250,7 +250,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: _maxZoom,
+            zoom: 20,
             bearing: 0,
             pitch: 0,
           ),
@@ -547,6 +547,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 photoUrl: member.avatarUrl,
                 isOnline: member.presence == 'online',
                 heading: heading,
+                zoom: _currentZoom,
                 onTap: () {
                   if (_selectedMemberId == member.id) {
                     setState(() => _selectedMemberId = null);

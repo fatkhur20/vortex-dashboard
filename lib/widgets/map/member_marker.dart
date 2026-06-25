@@ -57,6 +57,7 @@ class MemberMapMarker extends StatelessWidget {
   final bool isMe;
   final bool isOnline;
   final double heading;
+  final double zoom;
   final VoidCallback onTap;
 
   const MemberMapMarker({
@@ -67,6 +68,7 @@ class MemberMapMarker extends StatelessWidget {
     this.isMe = false,
     this.isOnline = false,
     this.heading = 0,
+    this.zoom = 18,
     required this.onTap,
   });
 
@@ -74,12 +76,14 @@ class MemberMapMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = memberName.isNotEmpty ? memberName[0].toUpperCase() : '?';
     final color = isMe ? ThemeConstants.primaryColor : _avatarColor(memberId);
-    const avatarSize = 22.0;
+
+    final avatarScale = (zoom / 18.0).clamp(0.5, 2.0);
+    const baseAvatarSize = 22.0;
     const dotSize = 10.0;
     const arrowH = 12.0;
     const outerW = 28.0;
-    const totalH = avatarSize + arrowH + dotSize + 4;
-
+    const totalH = baseAvatarSize + arrowH + dotSize + 4;
+    final avatarSize = baseAvatarSize;
     final headClamp = heading.clamp(0.0, 359.0);
 
     return GestureDetector(
@@ -91,54 +95,66 @@ class MemberMapMarker extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
-            Container(
-              width: avatarSize,
-              height: avatarSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withAlpha(180), width: 1.5),
-                color: Colors.black87,
-                boxShadow: [
-                  BoxShadow(
-                    color: isOnline ? const Color(0xFF00E676).withAlpha(100) : Colors.black.withAlpha(60),
-                    blurRadius: isOnline ? 8 : 4,
-                    spreadRadius: isOnline ? 1 : 0,
-                  ),
-                ],
-                image: photoUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(photoUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: photoUrl == null
-                  ? Center(
-                      child: Text(initial,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          )),
-                    )
-                  : null,
-            ),
-            if (isOnline)
-              Positioned(
-                top: avatarSize - 4,
-                right: -1,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF00E676),
-                    border: Border.all(color: Colors.black, width: 1.5),
-                  ),
+            Transform.scale(
+              scale: avatarScale,
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: avatarSize,
+                height: avatarSize,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withAlpha(180), width: 1.5),
+                        color: Colors.black87,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isOnline ? const Color(0xFF00E676).withAlpha(100) : Colors.black.withAlpha(60),
+                            blurRadius: isOnline ? 8 : 4,
+                            spreadRadius: isOnline ? 1 : 0,
+                          ),
+                        ],
+                        image: photoUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(photoUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: photoUrl == null
+                          ? Center(
+                              child: Text(initial,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  )),
+                            )
+                          : null,
+                    ),
+                    if (isOnline)
+                      Positioned(
+                        top: avatarSize - 4,
+                        right: -1,
+                        child: Container(
+                          width: 8, height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF00E676),
+                            border: Border.all(color: Colors.black, width: 1.5),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
             Positioned(
-              top: avatarSize + 1,
+              top: baseAvatarSize + 1,
               child: AnimatedRotation(
                 turns: headClamp / 360.0,
                 duration: const Duration(milliseconds: 300),
@@ -146,14 +162,9 @@ class MemberMapMarker extends StatelessWidget {
                 child: SizedBox(
                   width: outerW,
                   height: arrowH + dotSize + 2,
-                  child: Stack(
-                    alignment: Alignment.topCenter,
-                    children: [
-                      CustomPaint(
-                        size: Size(outerW, arrowH + dotSize),
-                        painter: _MemberArrowPainter(color: color),
-                      ),
-                    ],
+                  child: CustomPaint(
+                    size: Size(outerW, arrowH + dotSize),
+                    painter: _MemberArrowPainter(color: color),
                   ),
                 ),
               ),
